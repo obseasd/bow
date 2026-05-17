@@ -94,20 +94,20 @@ export async function getLatestDecision(): Promise<LatestDecisionData | null> {
     const id = total
     // Read the structured fields from storage
     const d = await log.decisions(id)
-    // Pull the matching event to recover the reasoning text. Arc RPC
-    // caps eth_getLogs at 10,000 blocks per call, so we scan the recent
-    // window first and chunk back further only if needed.
+    // Pull the matching event to recover the reasoning text. The Canteen
+    // RPC accepts up to ~50,000 blocks per eth_getLogs call (vs ~10K on
+    // the public Arc RPC), so we go wider here for a longer rewind window.
     const filter = log.filters.DecisionLogged(id)
     let reasoning = '(reasoning not in event window)'
     let txHash = ''
     try {
-      const events = await log.queryFilter(filter, -9000, 'latest')
+      const events = await log.queryFilter(filter, -50000, 'latest')
       if (events.length > 0) {
         const e: any = events[events.length - 1]
         reasoning = e.args?.reasoning || reasoning
         txHash = e.transactionHash
       }
-    } catch (err) {
+    } catch {
       // Window too large or RPC blip, leave default
     }
     return {
