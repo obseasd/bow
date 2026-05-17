@@ -100,7 +100,7 @@ async function fetchMarketState(vault) {
     usdcBalance: balances[0],
     usycBalance: balances[1],
     eurcBalance: balances[2],
-    totalAssetsUsd: Number(ethers.formatUnits(totalAssets, 18)),
+    totalAssetsUsd: Number(ethers.formatUnits(totalAssets, 6)),
     usdcYieldPct: 0,
     usycYieldPct: 3.55,
     eurcYieldPct: 0,

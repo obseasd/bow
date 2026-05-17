@@ -18,6 +18,10 @@ export const ARC_TESTNET = {
   explorer: 'https://testnet.arcscan.app',
   faucet: 'https://faucet.circle.com',
   nativeCurrency: {
+    // Arc's gas token is USDC. On the native side, balances are denominated
+    // in 18 decimals (so the EVM gas math stays standard). The ERC-20 USDC
+    // contract on Arc uses the conventional 6 decimals. Both refer to the
+    // same underlying balance, just expressed in two scales.
     name: 'USDC',
     symbol: 'USDC',
     decimals: 18,
@@ -55,7 +59,7 @@ export const ASSETS = {
     address: ACTIVE_CHAIN.contracts.USDC,
     symbol: 'USDC',
     name: 'USD Coin',
-    decimals: 18, // Arc native USDC is 18 decimals (unusual, normally 6)
+    decimals: 6, // Arc native USDC is 18 decimals (unusual, normally 6)
     role: 'stable',
     description: 'Pure USD stable, also the gas token of Arc. No yield, zero slippage internal, maximum liquidity.',
   },
@@ -63,7 +67,7 @@ export const ASSETS = {
     address: ACTIVE_CHAIN.contracts.USYC,
     symbol: 'USYC',
     name: 'Circle US Yield Coin',
-    decimals: 18,
+    decimals: 6,
     role: 'tbill',
     description: 'Tokenized US Treasury Bills. Earns short-term T-bill yield (~3.5% APR), permissioned mint via Circle.',
   },
@@ -71,7 +75,7 @@ export const ASSETS = {
     address: ACTIVE_CHAIN.contracts.EURC,
     symbol: 'EURC',
     name: 'Euro Coin',
-    decimals: 18,
+    decimals: 6,
     role: 'fx',
     description: 'Euro-denominated stablecoin by Circle. Provides FX exposure to EUR vs USD spread.',
   },

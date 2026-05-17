@@ -25,7 +25,7 @@ export default function StatsBar() {
 
   const settled = s ? s.aiWins + s.humanWins : 0
   const totalAssetsDisplay = s
-    ? (Number(s.totalAssetsUsd) / 1e18).toFixed(2)
+    ? (Number(s.totalAssetsUsd) / 1e6).toFixed(2)
     : '—'
 
   const tiles = [
