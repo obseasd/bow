@@ -20,11 +20,11 @@ export default function Nav() {
             Vault
           </Link>
           <Link
-            href="/docs"
-            className="px-3 py-1.5 text-[var(--fg-muted)] hover:text-white transition"
+            href="/judge"
+            className="px-3 py-1.5 text-[var(--accent)] hover:text-white transition"
             style={{ borderRadius: 2 }}
           >
-            Docs
+            Judge
           </Link>
           <div className="ml-3">
             <WalletButton />

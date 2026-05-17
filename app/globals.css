@@ -38,7 +38,7 @@
      - USDC: deep navy (anchor stable)
      - USYC: mid blue (yield leg)
      - EURC: teal (FX leg) */
-  --asset-usdc: #04132D;
+  --asset-usdc: #1B3158;
   --asset-usyc: #2D5E8A;
   --asset-eurc: #61A2A3;
 }
