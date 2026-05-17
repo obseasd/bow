@@ -11,19 +11,6 @@ export default function HomePage() {
       <main className="relative z-10 max-w-6xl mx-auto px-6 pt-16 pb-20">
         {/* Hero */}
         <section className="mb-12">
-          <div className="flex flex-wrap items-center gap-2 mb-6">
-            <span className="inline-flex items-center gap-2 px-3 py-1 text-xs text-[var(--fg-muted)] border border-[var(--border)]" style={{ borderRadius: 2 }}>
-              <span className="pulse" />
-              Live on Arc Testnet
-            </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1 text-xs text-[var(--accent)] border border-[var(--accent)] mono" style={{ borderRadius: 2 }}>
-              Powered by Circle
-            </span>
-            <span className="inline-flex items-center gap-2 px-3 py-1 text-xs text-[var(--fg-muted)] border border-[var(--border)] mono" style={{ borderRadius: 2 }}>
-              Claude Haiku 4.5
-            </span>
-          </div>
-
           <h1 className="text-5xl md:text-6xl font-medium tracking-tight leading-[1.05] mb-5">
             <span className="text-[var(--fg)]">A hybrid AI staking primitive,</span><br />
             <span className="text-[var(--accent)]">built on Arc.</span>

@@ -12,10 +12,10 @@ interface VaultInfo {
   deployed: boolean
 }
 
-const ASSET_LIST: { key: AssetKey; label: string; sub: string; cls: string; bgCls: string }[] = [
-  { key: 'USDC', label: 'USDC', sub: 'Pure stable, gas of Arc', cls: 'asset-usdc', bgCls: 'bg-asset-usdc' },
-  { key: 'USYC', label: 'USYC', sub: 'T-bill yield (~3.55%)', cls: 'asset-usyc', bgCls: 'bg-asset-usyc' },
-  { key: 'EURC', label: 'EURC', sub: 'Euro FX exposure', cls: 'asset-eurc', bgCls: 'bg-asset-eurc' },
+const ASSET_LIST: { key: AssetKey; label: string; sub: string; yieldPct: number; cls: string; bgCls: string }[] = [
+  { key: 'USDC', label: 'USDC', sub: 'Pure stable, gas of Arc', yieldPct: 0.00, cls: 'asset-usdc', bgCls: 'bg-asset-usdc' },
+  { key: 'USYC', label: 'USYC', sub: 'T-bill yield, Circle native', yieldPct: 3.55, cls: 'asset-usyc', bgCls: 'bg-asset-usyc' },
+  { key: 'EURC', label: 'EURC', sub: 'Euro FX exposure', yieldPct: 0.00, cls: 'asset-eurc', bgCls: 'bg-asset-eurc' },
 ]
 
 const ERC20_ABI = [
@@ -75,9 +75,20 @@ export default function VaultPanel() {
             <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">Current AI allocation</div>
             <div className="text-xs text-[var(--fg-dim)] mt-1">Updated whenever the agent rebalances</div>
           </div>
-          <span className="text-[10px] mono text-[var(--accent)] px-2 py-0.5 border border-[var(--accent)]" style={{ borderRadius: 2 }}>
-            LIVE
-          </span>
+          {(() => {
+            // Blended yield = weighted average of (allocation% * yield%) / 100
+            const allocs = ASSET_LIST.map(a => {
+              const key = a.key === 'USDC' ? 'usdc' : a.key === 'USYC' ? 'usyc' : 'eurc'
+              return { yieldPct: a.yieldPct, pct: info?.allocation[key as 'usdc' | 'usyc' | 'eurc'] ?? (a.key === 'USDC' ? 50 : a.key === 'USYC' ? 30 : 20) }
+            })
+            const blended = allocs.reduce((s, a) => s + (a.pct * a.yieldPct) / 100, 0)
+            return (
+              <div className="text-right">
+                <div className="text-2xl mono font-medium text-[var(--accent)]">{blended.toFixed(2)}%</div>
+                <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] mt-0.5">Blended APY</div>
+              </div>
+            )
+          })()}
         </div>
 
         <div className="flex h-3 w-full overflow-hidden mb-5" style={{ borderRadius: 2 }}>
@@ -94,11 +105,16 @@ export default function VaultPanel() {
             const pct = info?.allocation[key as 'usdc' | 'usyc' | 'eurc'] ?? 0
             return (
               <div key={a.key} className="flex items-start gap-2">
-                <span className={`mt-1 inline-block w-2 h-2 ${a.bgCls}`} />
-                <div>
-                  <div className="flex items-baseline gap-2">
-                    <span className={`font-medium ${a.cls}`}>{a.label}</span>
-                    <span className="mono text-[var(--fg)]">{pct}%</span>
+                <span className={`mt-1 inline-block w-2 h-2 shrink-0 ${a.bgCls}`} />
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-baseline justify-between gap-2">
+                    <div className="flex items-baseline gap-1.5">
+                      <span className={`font-medium ${a.cls}`}>{a.label}</span>
+                      <span className="mono text-[var(--fg)]">{pct}%</span>
+                    </div>
+                    <span className="text-[10px] mono text-[var(--fg-muted)]">
+                      {a.yieldPct > 0 ? `${a.yieldPct.toFixed(2)}% APY` : '0% APY'}
+                    </span>
                   </div>
                   <div className="text-[10px] text-[var(--fg-dim)] mt-0.5">{a.sub}</div>
                 </div>
