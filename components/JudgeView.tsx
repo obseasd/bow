@@ -33,6 +33,7 @@ const CONTRACTS = [
   { label: 'HybridVault', addr: c.bowVault, role: '3-asset vault, cooldown withdraw, AI-callable executeAllocation' },
   { label: 'DecisionLog', addr: c.decisionLog, role: 'Append-only on-chain reasoning record, reasoning text in event data' },
   { label: 'TournamentVault', addr: c.tournamentVault, role: '24h rounds, human votes on 3-asset allocation, settle on-chain' },
+  { label: 'BowAgentIdentity (ERC-8004)', addr: c.agentIdentity, role: 'ERC-8004 IdentityRegistry. Bow agent registered as agentId #1, discoverable for A2A composability.' },
 ]
 
 const CIRCLE_NATIVE = [
@@ -130,6 +131,12 @@ export default function JudgeView() {
             description="Every transaction by the AI operator, every event from the contracts."
             href={`${ACTIVE_CHAIN.explorer}/address/${ai}`}
             cta="testnet.arcscan.app"
+          />
+          <LinkCard
+            title="ERC-8004 agent card"
+            description="The agent card JSON pointed at by the IdentityRegistry NFT. Spec-compliant ERC-8004 registration-v1."
+            href="https://bow-gamma.vercel.app/api/agent-card"
+            cta="/api/agent-card"
           />
         </div>
       </section>

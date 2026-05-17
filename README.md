@@ -2,6 +2,8 @@
 
 A hybrid AI staking primitive on Arc, Circle's stablecoin L1.
 
+**🔗 Live demo: [bow-gamma.vercel.app](https://bow-gamma.vercel.app) · 👨‍⚖️ For judges: [bow-gamma.vercel.app/judge](https://bow-gamma.vercel.app/judge)**
+
 Bow is an autonomous treasury agent that allocates user deposits across
 three Circle-native assets on Arc:
 

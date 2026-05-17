@@ -53,6 +53,9 @@ export const ARC_TESTNET = {
     bowVault: '0x87107f7122FD12cB15740DfA292FffB0d7f180B2',
     decisionLog: '0xf547A123859C868fC42d720251B1DBdb59d2e5c9',
     tournamentVault: '0xc64F830e8a38f9253649D318589c82a9A3b486CE',
+    // BowAgentIdentity (ERC-8004 IdentityRegistry), deployed 2026-05-17
+    // Agent registered as agentId #1, owned by the AI operator wallet.
+    agentIdentity: '0x92e6b40da9566d6b7176420d88818500db77d122',
   },
 } as const
 
