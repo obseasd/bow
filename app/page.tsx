@@ -2,6 +2,7 @@ import VaultPanel from '@/components/VaultPanel'
 import StatsBar from '@/components/StatsBar'
 import LatestDecision from '@/components/LatestDecision'
 import RecentRounds from '@/components/RecentRounds'
+import AllocationSparkline from '@/components/AllocationSparkline'
 import Nav from '@/components/Nav'
 
 export default function HomePage() {
@@ -42,6 +43,11 @@ export default function HomePage() {
         {/* Latest AI decision card */}
         <section className="mt-12">
           <LatestDecision />
+        </section>
+
+        {/* Allocation trajectory sparkline */}
+        <section className="mt-12">
+          <AllocationSparkline />
         </section>
 
         {/* Recent tournament rounds */}

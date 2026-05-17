@@ -34,14 +34,13 @@
   --negative: #ff5577;
   --neutral: #95a3b5;
 
-  /* Asset accents for the 3 vault assets.
-     Three clearly distinct hues so the allocation bar reads at a glance:
-     - USDC: deep Circle blue (the anchor stable)
-     - USYC: bright teal-cyan (the yield leg)
-     - EURC: warm amber (the FX leg, distinct from blues) */
-  --asset-usdc: #2775CA;
-  --asset-usyc: #14E0C4;
-  --asset-eurc: #F2A641;
+  /* Asset accents for the 3 vault assets, user-chosen palette:
+     - USDC: deep navy (anchor stable)
+     - USYC: mid blue (yield leg)
+     - EURC: teal (FX leg) */
+  --asset-usdc: #04132D;
+  --asset-usyc: #2D5E8A;
+  --asset-eurc: #61A2A3;
 }
 
 @theme inline {

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useAccount, useReadContract, useWriteContract, useSwitchChain, useChainId } from 'wagmi'
 import { parseUnits, formatUnits, type Address } from 'viem'
 import { ACTIVE_CHAIN, ASSETS, type AssetKey } from '@/lib/chains'
+import { showToast } from './Toast'
 
 interface VaultInfo {
   allocation: { usdc: number; usyc: number; eurc: number }
@@ -91,11 +92,21 @@ export default function VaultPanel() {
           })()}
         </div>
 
-        <div className="flex h-3 w-full overflow-hidden mb-5" style={{ borderRadius: 2 }}>
-          {ASSET_LIST.map((a) => {
+        <div className="flex h-3 w-full overflow-hidden mb-5 border border-[var(--border)]" style={{ borderRadius: 2 }}>
+          {ASSET_LIST.map((a, i) => {
             const key = a.key === 'USDC' ? 'usdc' : a.key === 'USYC' ? 'usyc' : 'eurc'
             const pct = info?.allocation[key as 'usdc' | 'usyc' | 'eurc'] ?? 33
-            return <div key={a.key} className={a.bgCls} style={{ width: `${pct}%` }} title={`${a.label} ${pct}%`} />
+            return (
+              <div
+                key={a.key}
+                className={a.bgCls}
+                style={{
+                  width: `${pct}%`,
+                  borderRight: i < ASSET_LIST.length - 1 ? '1px solid var(--bg)' : 'none',
+                }}
+                title={`${a.label} ${pct}%`}
+              />
+            )
           })}
         </div>
 
@@ -205,16 +216,18 @@ function DepositForm({ vaultAddr, isVaultDeployed }: { vaultAddr: string; isVaul
     try {
       setStep('approving')
       await ensureChain()
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         address: assetMeta.address as Address,
         abi: ERC20_ABI,
         functionName: 'approve',
         args: [vaultAddr as Address, parsedAmount],
         chainId: ACTIVE_CHAIN.id,
       })
+      showToast(`${assetMeta.symbol} approved`, 'success', { label: 'View tx', url: `${ACTIVE_CHAIN.explorer}/tx/${tx}` })
       setTimeout(() => { refetchAllowance(); setStep('idle') }, 1500)
     } catch (err) {
       console.error('approve failed', err)
+      showToast(`Approve failed: ${(err as Error).message?.split('\n')[0] || 'unknown error'}`, 'error')
       setStep('idle')
     }
   }
@@ -224,16 +237,18 @@ function DepositForm({ vaultAddr, isVaultDeployed }: { vaultAddr: string; isVaul
     try {
       setStep('depositing')
       await ensureChain()
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         address: vaultAddr as Address,
         abi: VAULT_ABI,
         functionName: 'deposit',
         args: [assetMeta.address as Address, parsedAmount],
         chainId: ACTIVE_CHAIN.id,
       })
+      showToast(`Deposited ${amount} ${assetMeta.symbol}`, 'success', { label: 'View tx', url: `${ACTIVE_CHAIN.explorer}/tx/${tx}` })
       setTimeout(() => { refetchBalance(); refetchAllowance(); setAmount(''); setStep('idle') }, 2000)
     } catch (err) {
       console.error('deposit failed', err)
+      showToast(`Deposit failed: ${(err as Error).message?.split('\n')[0] || 'unknown error'}`, 'error')
       setStep('idle')
     }
   }
@@ -368,16 +383,18 @@ function WithdrawForm({ vaultAddr, tournamentAddr, isVaultDeployed }: { vaultAdd
     try {
       setStep('requesting')
       await ensureChain()
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         address: vaultAddr as Address,
         abi: VAULT_ABI,
         functionName: 'requestWithdraw',
         args: [parsedAmount],
         chainId: ACTIVE_CHAIN.id,
       })
+      showToast(`Withdraw requested. Claim available next round.`, 'success', { label: 'View tx', url: `${ACTIVE_CHAIN.explorer}/tx/${tx}` })
       setTimeout(() => { refetchShares(); refetchPending(); setAmount(''); setStep('idle') }, 2000)
     } catch (err) {
       console.error('requestWithdraw failed', err)
+      showToast(`Withdraw request failed: ${(err as Error).message?.split('\n')[0] || 'unknown error'}`, 'error')
       setStep('idle')
     }
   }
@@ -386,15 +403,17 @@ function WithdrawForm({ vaultAddr, tournamentAddr, isVaultDeployed }: { vaultAdd
     try {
       setStep('claiming')
       await ensureChain()
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         address: vaultAddr as Address,
         abi: VAULT_ABI,
         functionName: 'claimWithdraw',
         chainId: ACTIVE_CHAIN.id,
       })
+      showToast(`Withdraw claimed`, 'success', { label: 'View tx', url: `${ACTIVE_CHAIN.explorer}/tx/${tx}` })
       setTimeout(() => { refetchShares(); refetchPending(); setStep('idle') }, 2000)
     } catch (err) {
       console.error('claimWithdraw failed', err)
+      showToast(`Claim failed: ${(err as Error).message?.split('\n')[0] || 'unknown error'}`, 'error')
       setStep('idle')
     }
   }

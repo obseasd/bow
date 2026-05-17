@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import VoteOnRound from './VoteOnRound'
+import RoundDetailModal from './RoundDetailModal'
 
 interface Round {
   id: number
@@ -39,6 +40,7 @@ export default function RecentRounds() {
   const [rounds, setRounds] = useState<Round[]>([])
   const [loading, setLoading] = useState(true)
   const [openVoteId, setOpenVoteId] = useState<number | null>(null)
+  const [detailRound, setDetailRound] = useState<Round | null>(null)
 
   useEffect(() => {
     fetch('/api/rounds')
@@ -80,7 +82,11 @@ export default function RecentRounds() {
 
             return (
               <div key={r.id} className="card overflow-hidden">
-                <div className="grid grid-cols-[60px_1fr_120px_120px_140px] gap-3 px-5 py-3 text-sm items-center">
+                <div
+                  className="grid grid-cols-[60px_1fr_120px_120px_140px] gap-3 px-5 py-3 text-sm items-center cursor-pointer hover:bg-white/[0.02] transition"
+                  onClick={() => setDetailRound(r)}
+                  title="Click for round details"
+                >
                   <div className="mono text-[var(--fg-muted)]">#{r.id}</div>
                   <div className="flex items-center gap-2 text-xs mono">
                     <span className="asset-usdc">{r.aiUsdcPct}%</span>
@@ -95,7 +101,10 @@ export default function RecentRounds() {
                   <div className={`mono text-right text-xs ${alpha === null ? 'text-[var(--fg-dim)]' : alpha >= 0 ? 'text-[var(--accent)]' : 'text-[var(--negative)]'}`}>
                     {alpha === null ? countdown(r.settlementTime) : `${alpha >= 0 ? '+' : ''}${alpha}bps`}
                   </div>
-                  <div className="text-right flex items-center justify-end gap-2">
+                  <div
+                    className="text-right flex items-center justify-end gap-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     {isPending ? (
                       <button
                         onClick={() => setOpenVoteId(voteOpen ? null : r.id)}
@@ -128,6 +137,8 @@ export default function RecentRounds() {
           })}
         </div>
       )}
+
+      <RoundDetailModal round={detailRound} onClose={() => setDetailRound(null)} />
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useAccount, useReadContract, useWriteContract, useSwitchChain, useChainId } from 'wagmi'
 import { ACTIVE_CHAIN } from '@/lib/chains'
+import { showToast } from './Toast'
 
 const TOURNAMENT_ABI = [
   { name: 'voteHuman', type: 'function', stateMutability: 'nonpayable', inputs: [
@@ -75,16 +76,18 @@ export default function VoteOnRound({ roundId, aiUsdcPct, aiUsycPct, aiEurcPct, 
     try {
       setStep('voting')
       await ensureChain()
-      await writeContractAsync({
+      const tx = await writeContractAsync({
         address: tournamentAddr,
         abi: TOURNAMENT_ABI,
         functionName: 'voteHuman',
         args: [BigInt(roundId), usdcPct, usycPct, eurcPct],
         chainId: ACTIVE_CHAIN.id,
       })
+      showToast(`Vote recorded on round #${roundId}: ${usdcPct}/${usycPct}/${eurcPct}`, 'success', { label: 'View tx', url: `${ACTIVE_CHAIN.explorer}/tx/${tx}` })
       setTimeout(() => { refetchVote(); setStep('idle'); onClose?.() }, 2000)
     } catch (err) {
       console.error('vote failed', err)
+      showToast(`Vote failed: ${(err as Error).message?.split('\n')[0] || 'unknown error'}`, 'error')
       setStep('idle')
     }
   }
