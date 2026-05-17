@@ -35,3 +35,5 @@ yarn-error.log*
 # Local
 .vercel
 *.local
+
+.vercel
