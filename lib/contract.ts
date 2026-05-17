@@ -52,8 +52,104 @@ export interface OnChainStats {
   vault: VaultState
 }
 
+export interface LatestDecisionData {
+  id: number
+  usdcPct: number
+  usycPct: number
+  eurcPct: number
+  confidence: number
+  reasoning: string
+  txHash: string
+  timestamp: number
+}
+
+export interface RoundData {
+  id: number
+  aiUsdcPct: number
+  aiUsycPct: number
+  aiEurcPct: number
+  humanUsdcPct: number
+  humanUsycPct: number
+  humanEurcPct: number
+  startTime: number
+  settlementTime: number
+  aiReturnBps: number
+  humanReturnBps: number
+  outcome: number
+  settled: boolean
+}
+
 function getProvider(): ethers.JsonRpcProvider {
   return new ethers.JsonRpcProvider(ACTIVE_CHAIN.rpc)
+}
+
+export async function getLatestDecision(): Promise<LatestDecisionData | null> {
+  const logAddr = (ACTIVE_CHAIN.contracts as any).decisionLog
+  if (!logAddr) return null
+  const provider = getProvider()
+  const log = new ethers.Contract(logAddr, DECISION_LOG_ABI, provider)
+  try {
+    const total = Number(await log.totalDecisions())
+    if (total === 0) return null
+    const id = total
+    // Read the structured fields from storage
+    const d = await log.decisions(id)
+    // Pull the matching event to recover the reasoning text
+    const filter = log.filters.DecisionLogged(id)
+    const events = await log.queryFilter(filter, -50000, 'latest')
+    let reasoning = '(reasoning not in event window)'
+    let txHash = ''
+    if (events.length > 0) {
+      const e: any = events[events.length - 1]
+      reasoning = e.args?.reasoning || reasoning
+      txHash = e.transactionHash
+    }
+    return {
+      id,
+      usdcPct: Number(d.usdcPct ?? d[0]),
+      usycPct: Number(d.usycPct ?? d[1]),
+      eurcPct: Number(d.eurcPct ?? d[2]),
+      confidence: Number(d.confidence ?? d[3]),
+      reasoning,
+      txHash,
+      timestamp: Number(d.timestamp ?? d[5]),
+    }
+  } catch (e) {
+    console.error('[bow contract] getLatestDecision failed:', (e as Error).message)
+    return null
+  }
+}
+
+export async function getRecentRounds(limit = 8): Promise<RoundData[]> {
+  const tourAddr = (ACTIVE_CHAIN.contracts as any).tournamentVault
+  if (!tourAddr) return []
+  const provider = getProvider()
+  const tournament = new ethers.Contract(tourAddr, TOURNAMENT_ABI, provider)
+  try {
+    const total = Number(await tournament.totalRounds())
+    if (total === 0) return []
+    const ids: number[] = []
+    for (let i = total; i > 0 && ids.length < limit; i--) ids.push(i)
+    const rows = await Promise.all(ids.map(id => tournament.rounds(id)))
+    return rows.map((r: any, idx: number) => ({
+      id: ids[idx],
+      startTime: Number(r.startTime ?? r[1]),
+      settlementTime: Number(r.settlementTime ?? r[2]),
+      aiUsdcPct: Number(r.aiUsdcPct ?? r[9]),
+      aiUsycPct: Number(r.aiUsycPct ?? r[10]),
+      aiEurcPct: Number(r.aiEurcPct ?? r[11]),
+      humanUsdcPct: Number(r.humanUsdcPct ?? r[12]),
+      humanUsycPct: Number(r.humanUsycPct ?? r[13]),
+      humanEurcPct: Number(r.humanEurcPct ?? r[14]),
+      aiReturnBps: Number(r.aiReturnBps ?? r[15]),
+      humanReturnBps: Number(r.humanReturnBps ?? r[16]),
+      outcome: Number(r.outcome ?? r[17]),
+      settled: Boolean(r.settled ?? r[18]),
+    }))
+  } catch (e) {
+    console.error('[bow contract] getRecentRounds failed:', (e as Error).message)
+    return []
+  }
 }
 
 function bowVaultOrEmpty(): string {
