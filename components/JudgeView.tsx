@@ -36,12 +36,6 @@ const CONTRACTS = [
   { label: 'BowAgentIdentity (ERC-8004)', addr: c.agentIdentity, role: 'ERC-8004 IdentityRegistry. Bow agent registered as agentId #1, discoverable for A2A composability.' },
 ]
 
-const CIRCLE_NATIVE = [
-  { label: 'USDC', addr: c.USDC, role: 'Pure stable, gas token of Arc (ERC-20 6 decimals, native 18)' },
-  { label: 'USYC', addr: c.USYC, role: 'Circle US Yield Coin, tokenized US T-bills' },
-  { label: 'EURC', addr: c.EURC, role: 'Circle Euro Coin, FX leg of the vault' },
-]
-
 const ai = '0x3a0Dd90212838f32a953Acd4B32596b62859324A'
 
 function shortAddr(a: string) {
@@ -149,16 +143,6 @@ export default function JudgeView() {
             <ContractRow key={ct.label} label={ct.label} addr={ct.addr} role={ct.role} />
           ))}
           <ContractRow label="AI operator" addr={ai} role="The wallet that signs executeAllocation, settles rounds, and runs the cron loop. Owner of the vault." />
-        </div>
-      </section>
-
-      {/* Circle stack */}
-      <section>
-        <SectionTitle>Circle stack on Arc, integrated assets</SectionTitle>
-        <div className="space-y-2">
-          {CIRCLE_NATIVE.map(ct => (
-            <ContractRow key={ct.label} label={ct.label} addr={ct.addr} role={ct.role} />
-          ))}
         </div>
       </section>
 

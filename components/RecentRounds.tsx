@@ -69,9 +69,24 @@ export default function RecentRounds() {
           <div className="grid grid-cols-[60px_1fr_120px_120px_140px] gap-3 px-5 py-2 text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">
             <div>Round</div>
             <div>AI allocation</div>
-            <div className="text-right">AI return</div>
-            <div className="text-right">Alpha vs human</div>
+            <div
+              className="text-right cursor-help"
+              title="The AI allocation's basis-points return over the 24h round, weighted across USDC, USYC and EURC price moves."
+            >
+              AI bps ⓘ
+            </div>
+            <div
+              className="text-right cursor-help"
+              title="AI return minus the human aggregate's return, in basis points. Positive = AI beat humans, negative = humans beat the AI."
+            >
+              Alpha vs human ⓘ
+            </div>
             <div className="text-right">Status</div>
+          </div>
+
+          <div className="text-[10px] text-[var(--fg-dim)] px-5 mb-1 leading-relaxed">
+            <span className="text-[var(--fg-muted)]">How to read:</span> AI bps is the AI&apos;s 24h return.
+            Alpha vs human shows by how many bps the AI beat or lost to the human aggregate (pending rounds show settle countdown instead). Click any row for full reasoning.
           </div>
 
           {rounds.map((r) => {

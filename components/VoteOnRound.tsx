@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useReadContract, useWriteContract, useSwitchChain, useChainId } from 'wagmi'
+import { useAccount, useReadContract, useWriteContract, useSwitchChain, useChainId, useConnect } from 'wagmi'
+import { injected } from 'wagmi/connectors'
 import { ACTIVE_CHAIN } from '@/lib/chains'
 import { showToast } from './Toast'
 
@@ -49,6 +50,7 @@ export default function VoteOnRound({ roundId, aiUsdcPct, aiUsycPct, aiEurcPct, 
   const chainId = useChainId()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync } = useWriteContract()
+  const { connect, connectors } = useConnect()
 
   // Has user already voted on this round?
   const { data: existingVote, refetch: refetchVote } = useReadContract({
@@ -158,8 +160,14 @@ export default function VoteOnRound({ roundId, aiUsdcPct, aiUsycPct, aiEurcPct, 
       <button
         className="btn-accent w-full text-sm"
         style={{ borderRadius: 2 }}
-        onClick={handleVote}
-        disabled={!isConnected || !sumValid || step !== 'idle'}
+        onClick={() => {
+          if (!isConnected) {
+            connect({ connector: connectors[0] || injected() })
+            return
+          }
+          handleVote()
+        }}
+        disabled={isConnected && (!sumValid || step !== 'idle')}
       >
         {!isConnected ? 'Connect wallet' : step === 'voting' ? 'Voting...' : 'Vote against AI'}
       </button>

@@ -1,9 +1,17 @@
 'use client'
 
 import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import WalletButton from './WalletButton'
 
 export default function Nav() {
+  const pathname = usePathname()
+
+  const links = [
+    { href: '/', label: 'Vault' },
+    { href: '/judge', label: 'Judge' },
+  ]
+
   return (
     <nav className="relative z-50 border-b border-[var(--border)]" style={{ background: 'rgba(10, 13, 18, 0.85)', backdropFilter: 'blur(8px)' }}>
       <div className="max-w-6xl mx-auto flex items-center justify-between px-6 py-4">
@@ -12,20 +20,23 @@ export default function Nav() {
           <span className="font-medium text-lg tracking-tight">bow</span>
         </Link>
         <div className="flex items-center gap-1 text-sm">
-          <Link
-            href="/"
-            className="px-3 py-1.5 text-[var(--fg-muted)] hover:text-white transition"
-            style={{ borderRadius: 2 }}
-          >
-            Vault
-          </Link>
-          <Link
-            href="/judge"
-            className="px-3 py-1.5 text-[var(--accent)] hover:text-white transition"
-            style={{ borderRadius: 2 }}
-          >
-            Judge
-          </Link>
+          {links.map(l => {
+            const isActive = pathname === l.href
+            return (
+              <Link
+                key={l.href}
+                href={l.href}
+                className={`px-3 py-1.5 transition ${
+                  isActive
+                    ? 'text-white font-medium'
+                    : 'text-[var(--fg-muted)] hover:text-white'
+                }`}
+                style={{ borderRadius: 2 }}
+              >
+                {l.label}
+              </Link>
+            )
+          })}
           <div className="ml-3">
             <WalletButton />
           </div>
