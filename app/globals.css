@@ -1,0 +1,217 @@
+@import "tailwindcss";
+
+/* Bow — Arc-inspired theme.
+   Arc brand identity: light-mode primary, deep navy/charcoal logo + body text,
+   cyan/bright-blue accent for interactive elements, white backgrounds with
+   subtle gray borders. Sharp edges (minimal rounding), flat design, no
+   shadows by default. Professional yet approachable, institutional.
+
+   Bow keeps the Arc aesthetic but supports dark mode by default via a CSS
+   variable switch. Light mode is the marketing surface, dark mode is the
+   builder/operator surface. We render dark by default to match the
+   "agentic / on-chain" mental model crypto users already have.
+*/
+
+:root {
+  /* Dark mode (default) */
+  --bg: #0a0d12;            /* near-black with cool navy tint */
+  --bg-card: #11161d;       /* slightly elevated panels */
+  --bg-elevated: #1a212b;   /* deeper interactive surfaces */
+  --border: #1d2530;        /* subtle cool gray border */
+  --border-strong: #2a3340; /* hover/focus border */
+
+  --fg: #f3f6fb;            /* near-white with cool cast */
+  --fg-muted: #95a3b5;      /* secondary text */
+  --fg-dim: #5a6878;        /* tertiary / labels */
+
+  /* Arc accent: cyan/electric blue. Used sparingly per Arc brand. */
+  --accent: #4DD2FF;
+  --accent-strong: #6FE0FF;
+  --accent-soft: rgba(77, 210, 255, 0.10);
+  --accent-glow: rgba(77, 210, 255, 0.25);
+
+  --positive: #4DD2FF;
+  --negative: #ff5577;
+  --neutral: #95a3b5;
+
+  /* Asset accents for the 3 vault assets */
+  --asset-usdc: #2775CA;    /* Circle USDC blue */
+  --asset-usyc: #5BC0EB;    /* Lighter T-bill cyan */
+  --asset-eurc: #4DD2FF;    /* EURC Arc cyan */
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--fg);
+  --color-card: var(--bg-card);
+  --color-border: var(--border);
+  --color-accent: var(--accent);
+  --color-positive: var(--positive);
+  --color-negative: var(--negative);
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  background: var(--bg);
+  color: var(--fg);
+  -webkit-font-smoothing: antialiased;
+  font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01", "cv01", "cv02", "cv03";
+}
+
+/* Subtle grid pattern matching Arc's geometric vibe */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, rgba(77, 210, 255, 0.025) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(77, 210, 255, 0.025) 1px, transparent 1px);
+  background-size: 80px 80px;
+  pointer-events: none;
+  z-index: 0;
+  mask-image: radial-gradient(ellipse at 50% 0%, black, transparent 70%);
+}
+
+/* Cards: Arc style is sharp corners + subtle borders, no shadows */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: border-color 0.15s;
+}
+.card:hover { border-color: var(--border-strong); }
+
+.card.interactive {
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1), border-color 0.2s;
+}
+.card.interactive:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+}
+
+/* Buttons */
+.btn-primary {
+  background: var(--fg);
+  color: var(--bg);
+  border: 1px solid var(--fg);
+  border-radius: 2px;
+  padding: 10px 20px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.btn-primary:hover { opacity: 0.88; }
+.btn-primary:disabled { opacity: 0.3; cursor: not-allowed; }
+
+.btn-secondary {
+  background: transparent;
+  color: var(--fg);
+  border: 1px solid var(--border-strong);
+  border-radius: 2px;
+  padding: 10px 20px;
+  font-weight: 500;
+  font-size: 14px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.btn-secondary:hover {
+  border-color: var(--accent);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+
+.btn-accent {
+  background: var(--accent);
+  color: var(--bg);
+  border: 1px solid var(--accent);
+  border-radius: 2px;
+  padding: 10px 20px;
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.15s, box-shadow 0.15s;
+  box-shadow: 0 0 0 0 var(--accent-glow);
+}
+.btn-accent:hover {
+  background: var(--accent-strong);
+  box-shadow: 0 0 0 4px var(--accent-glow);
+}
+.btn-accent:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* Pulse indicator for live status */
+.pulse {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  position: relative;
+}
+.pulse::after {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0;
+  animation: pulse 2s ease-out infinite;
+}
+@keyframes pulse {
+  0% { opacity: 0.5; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2.5); }
+}
+
+.mono {
+  font-family: 'JetBrains Mono', 'Geist Mono', ui-monospace, monospace;
+  font-feature-settings: "tnum";
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--fg-dim); }
+
+::selection { background: var(--accent-soft); color: var(--accent); }
+
+/* Animations */
+@keyframes statRise {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.stat-card { animation: statRise 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) both; }
+.fade-in { animation: statRise 0.4s ease-out both; }
+
+/* Modal */
+.modal-backdrop {
+  background: rgba(10, 13, 18, 0.75);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeIn 0.2s ease-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modal-panel {
+  animation: panelRise 0.25s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes panelRise {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Asset color helpers */
+.asset-usdc { color: var(--asset-usdc); }
+.asset-usyc { color: var(--asset-usyc); }
+.asset-eurc { color: var(--asset-eurc); }
+.bg-asset-usdc { background: var(--asset-usdc); }
+.bg-asset-usyc { background: var(--asset-usyc); }
+.bg-asset-eurc { background: var(--asset-eurc); }

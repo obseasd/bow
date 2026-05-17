@@ -1,0 +1,33 @@
+name: Bow agent loop
+
+on:
+  # Every 6 hours, matches the on-chain rebalance cooldown.
+  schedule:
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+
+jobs:
+  run-agent:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci --legacy-peer-deps
+
+      - name: Run agent loop
+        env:
+          PRIVATE_KEY: ${{ secrets.BOW_PRIVATE_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          BOW_VAULT: ${{ secrets.BOW_VAULT }}
+          BOW_DECISION_LOG: ${{ secrets.BOW_DECISION_LOG }}
+          BOW_TOURNAMENT: ${{ secrets.BOW_TOURNAMENT }}
+        run: node scripts/agent-loop.mjs
