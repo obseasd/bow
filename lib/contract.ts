@@ -80,7 +80,11 @@ export interface RoundData {
 }
 
 function getProvider(): ethers.JsonRpcProvider {
-  return new ethers.JsonRpcProvider(ACTIVE_CHAIN.rpc)
+  // The Canteen RPC enforces a MaxBatchSize on JSON-RPC batches. Ethers v6
+  // greedily batches concurrent calls (Promise.all) into a single request
+  // which trips the limit and returns HTTP 413. Set batchMaxCount=1 to
+  // send each call as its own HTTP request. Slightly slower but reliable.
+  return new ethers.JsonRpcProvider(ACTIVE_CHAIN.rpc, undefined, { batchMaxCount: 1 })
 }
 
 export async function getLatestDecision(): Promise<LatestDecisionData | null> {
