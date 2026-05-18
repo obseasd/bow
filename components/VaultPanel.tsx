@@ -11,6 +11,8 @@ import ChainSwitchBanner from './ChainSwitchBanner'
 interface VaultInfo {
   allocation: { usdc: number; usyc: number; eurc: number }
   balances: { usdc: string; usyc: string; eurc: string }
+  idle: { usdc: string; usyc: string; eurc: string }
+  lending: { usdc: string; usyc: string; eurc: string }
   totalAssetsUsd: string
   deployed: boolean
 }
@@ -68,6 +70,8 @@ export default function VaultPanel() {
         setInfo({
           allocation: d.allocation,
           balances: d.balances,
+          idle: d.idle ?? { usdc: '0', usyc: '0', eurc: '0' },
+          lending: d.lending ?? { usdc: '0', usyc: '0', eurc: '0' },
           totalAssetsUsd: d.totalAssetsUsd,
           deployed: !!d.deployed,
         })
@@ -149,11 +153,47 @@ export default function VaultPanel() {
           })}
         </div>
 
+        {info?.deployed && (info.lending.usdc !== '0' || info.lending.eurc !== '0' || info.lending.usyc !== '0' || info.idle.usdc !== '0' || info.idle.eurc !== '0' || info.idle.usyc !== '0') && (
+          <div className="mt-5 pt-4 border-t border-[var(--border)]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)]">Treasury routing</div>
+              <div className="text-[10px] text-[var(--fg-dim)]">Idle held in vault · Lent into BowLendingPool</div>
+            </div>
+            <div className="grid grid-cols-3 gap-3 text-xs">
+              {ASSET_LIST.map((a) => {
+                const key = a.key === 'USDC' ? 'usdc' : a.key === 'USYC' ? 'usyc' : 'eurc'
+                const idleRaw = info.idle[key as 'usdc' | 'usyc' | 'eurc']
+                const lentRaw = info.lending[key as 'usdc' | 'usyc' | 'eurc']
+                const idle = parseFloat(formatUnits(BigInt(idleRaw || '0'), ASSETS[a.key].decimals))
+                const lent = parseFloat(formatUnits(BigInt(lentRaw || '0'), ASSETS[a.key].decimals))
+                const total = idle + lent
+                const lentPct = total > 0 ? (lent / total) * 100 : 0
+                return (
+                  <div key={a.key} className="border border-[var(--border)] p-2" style={{ borderRadius: 2 }}>
+                    <div className={`text-[10px] mono mb-1 ${a.cls}`}>{a.label}</div>
+                    <div className="flex h-1.5 w-full overflow-hidden mb-2 bg-[var(--bg-elevated)]">
+                      <div className={a.bgCls} style={{ width: `${100 - lentPct}%`, opacity: 0.5 }} title={`Idle ${idle.toFixed(4)}`} />
+                      <div className={a.bgCls} style={{ width: `${lentPct}%` }} title={`Lent ${lent.toFixed(4)}`} />
+                    </div>
+                    <div className="flex justify-between text-[10px] text-[var(--fg-dim)]">
+                      <span>idle <span className="mono text-[var(--fg)]">{idle.toFixed(2)}</span></span>
+                      <span>lent <span className="mono text-[var(--fg)]">{lent.toFixed(2)}</span></span>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+            <div className="mt-2 text-[10px] text-[var(--fg-dim)] leading-relaxed">
+              The AI keeps a ~30% idle buffer per asset and routes the rest into BowLendingPool to earn supply yield. USYC stays idle (its yield is native).
+            </div>
+          </div>
+        )}
+
         <div className="mt-3 text-[10px] text-[var(--fg-dim)] leading-relaxed">
           <span className="mono text-[var(--fg-muted)]">*</span> USDC and EURC rates are
-          Aave V3 mainnet supply rates (DefiLlama, live). Arc testnet has no lending
-          protocol live yet, so these are benchmarks for what Bow would earn once a
-          lending leg is integrated. USYC yield is real on-chain Circle issuance.
+          Aave V3 mainnet supply rates (DefiLlama, live). Bow routes idle USDC and EURC
+          into BowLendingPool on Arc testnet so the displayed APY is actually being
+          captured on-chain. USYC yield is real Circle T-bill issuance.
         </div>
 
         {info && !info.deployed && (

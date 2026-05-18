@@ -13,6 +13,8 @@ const VAULT_ABI = [
   'function totalAssetsUsd() view returns (uint256)',
   'function getAllocation() view returns (uint8 u, uint8 y, uint8 e)',
   'function getBalances() view returns (uint256 usdcBal, uint256 usycBal, uint256 eurcBal)',
+  'function getDetailedBalances() view returns (uint256 usdcIdle, uint256 usdcLending, uint256 usycIdle, uint256 usycLending, uint256 eurcIdle, uint256 eurcLending)',
+  'function lendingPool() view returns (address)',
   'function lastRebalanceAt() view returns (uint256)',
   'function minRebalanceBps() view returns (uint256)',
   'function minTimeBetweenRebalances() view returns (uint256)',
@@ -36,6 +38,8 @@ const TOURNAMENT_ABI = [
 export interface VaultState {
   allocation: { usdc: number; usyc: number; eurc: number }
   balances: { usdc: string; usyc: string; eurc: string }
+  idle: { usdc: string; usyc: string; eurc: string }
+  lending: { usdc: string; usyc: string; eurc: string }
   totalSharesStr: string
   totalAssetsUsd: string
   lastRebalanceAt: number
@@ -250,9 +254,10 @@ export async function getStats(): Promise<OnChainStats | null> {
   const tournament = new ethers.Contract((ACTIVE_CHAIN.contracts as any).tournamentVault || ethers.ZeroAddress, TOURNAMENT_ABI, provider)
 
   try {
-    const [alloc, balances, totalShares, totalAssets, lastRebalanceAt, minRebalanceBps, minTime, totalDecisions, totalRounds, aiWins, humanWins] = await Promise.all([
+    const [alloc, balances, detailed, totalShares, totalAssets, lastRebalanceAt, minRebalanceBps, minTime, totalDecisions, totalRounds, aiWins, humanWins] = await Promise.all([
       vault.getAllocation(),
       vault.getBalances(),
+      vault.getDetailedBalances().catch(() => [BigInt(0), BigInt(0), BigInt(0), BigInt(0), BigInt(0), BigInt(0)] as const),
       vault.totalShares(),
       vault.totalAssetsUsd(),
       vault.lastRebalanceAt(),
@@ -281,6 +286,16 @@ export async function getStats(): Promise<OnChainStats | null> {
           usdc: balances[0].toString(),
           usyc: balances[1].toString(),
           eurc: balances[2].toString(),
+        },
+        idle: {
+          usdc: detailed[0].toString(),
+          usyc: detailed[2].toString(),
+          eurc: detailed[4].toString(),
+        },
+        lending: {
+          usdc: detailed[1].toString(),
+          usyc: detailed[3].toString(),
+          eurc: detailed[5].toString(),
         },
         totalSharesStr: totalShares.toString(),
         totalAssetsUsd: totalAssets.toString(),

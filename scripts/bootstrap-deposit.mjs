@@ -10,7 +10,7 @@
 import { ethers } from 'ethers'
 
 const RPC = 'https://rpc.testnet.arc.network'
-const VAULT = '0x87107f7122FD12cB15740DfA292FffB0d7f180B2'
+const VAULT = '0x13260290cc0e655f34c7e87946a502a6f248e5cb'
 const USDC = '0x3600000000000000000000000000000000000000'
 
 const AMOUNT = ethers.parseUnits('5', 6) // 5 USDC, Arc USDC ERC-20 is 6 decimals

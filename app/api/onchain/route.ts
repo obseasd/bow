@@ -18,6 +18,8 @@ export async function GET() {
         totalDecisions: 0,
         allocation: { usdc: 50, usyc: 30, eurc: 20 },
         balances: { usdc: '0', usyc: '0', eurc: '0' },
+        idle: { usdc: '0', usyc: '0', eurc: '0' },
+        lending: { usdc: '0', usyc: '0', eurc: '0' },
         totalAssetsUsd: '0',
         deployed: false,
       })
@@ -30,6 +32,8 @@ export async function GET() {
       totalDecisions: s.totalDecisions,
       allocation: s.vault.allocation,
       balances: s.vault.balances,
+      idle: s.vault.idle,
+      lending: s.vault.lending,
       totalAssetsUsd: s.vault.totalAssetsUsd,
       deployed: true,
     })

@@ -38,11 +38,15 @@ const EURC = '0x89B50855Aa3bE2F677cD6303Cec089B5F319D72a'
 const VAULT_ABI = [
   'function getAllocation() view returns (uint8 u, uint8 y, uint8 e)',
   'function getBalances() view returns (uint256 usdc, uint256 usyc, uint256 eurc)',
+  'function getDetailedBalances() view returns (uint256 usdcIdle, uint256 usdcLending, uint256 usycIdle, uint256 usycLending, uint256 eurcIdle, uint256 eurcLending)',
   'function totalAssetsUsd() view returns (uint256)',
   'function minRebalanceBps() view returns (uint256)',
   'function minTimeBetweenRebalances() view returns (uint256)',
   'function lastRebalanceAt() view returns (uint256)',
   'function executeAllocation(uint8 newUsdcPct, uint8 newUsycPct, uint8 newEurcPct, string calldata reasoning, uint8 confidence) external returns (uint256, uint256)',
+  'function supplyToLending(address asset, uint256 amount) external',
+  'function withdrawFromLending(address asset, uint256 amount) external returns (uint256)',
+  'function lendingPool() view returns (address)',
 ]
 
 const TOURNAMENT_ABI = [
@@ -277,6 +281,66 @@ async function tryExecute(wallet, vault, decision, state) {
   }
 }
 
+// Lending auto-balance policy
+//
+// The vault sits on a real treasury: every user deposit lands in idle balance
+// on the vault contract. To make that capital productive, the AI operator
+// supplies a portion of each asset to BowLendingPool and pulls it back when
+// idle drops below the target buffer (e.g., to honor a withdraw claim).
+//
+// Target: 30% idle buffer per asset, 70% supplied to lending. We skip USYC
+// because the pool APR is 0 for it (USYC carries its own native Circle yield
+// via the underlying T-bill issuance, no point routing through the pool).
+//
+// Dust threshold: 1 unit (1e6 wei at 6 decimals = 1 USDC / 1 EURC). Below
+// that we no-op to avoid burning gas on rounding.
+const IDLE_BUFFER_BPS = 3000 // 30%
+const MIN_TX_AMOUNT = 1_000_000n // 1 USDC or 1 EURC
+
+async function autoBalanceLending(vault) {
+  const lendingAddr = await vault.lendingPool()
+  if (!lendingAddr || lendingAddr === ethers.ZeroAddress) {
+    console.log('[bow] Lending pool not wired on this vault, skipping auto-supply.')
+    return
+  }
+  const detailed = await vault.getDetailedBalances()
+  const assets = [
+    { symbol: 'USDC', addr: USDC, idle: detailed[0], lent: detailed[1], skip: false },
+    { symbol: 'USYC', addr: USYC, idle: detailed[2], lent: detailed[3], skip: true },
+    { symbol: 'EURC', addr: EURC, idle: detailed[4], lent: detailed[5], skip: false },
+  ]
+  for (const a of assets) {
+    if (a.skip) continue
+    const total = a.idle + a.lent
+    if (total === 0n) continue
+    const targetIdle = (total * BigInt(IDLE_BUFFER_BPS)) / 10000n
+    if (a.idle > targetIdle) {
+      const supply = a.idle - targetIdle
+      if (supply < MIN_TX_AMOUNT) continue
+      try {
+        console.log(`[bow] Supplying ${ethers.formatUnits(supply, 6)} ${a.symbol} to lending (idle ${ethers.formatUnits(a.idle, 6)} > target ${ethers.formatUnits(targetIdle, 6)}).`)
+        const tx = await vault.supplyToLending(a.addr, supply)
+        console.log(`[bow]   tx ${tx.hash}`)
+        await tx.wait()
+      } catch (err) {
+        console.error(`[bow] supplyToLending ${a.symbol} failed:`, err.shortMessage || err.message)
+      }
+    } else if (a.idle < targetIdle && a.lent > 0n) {
+      const need = targetIdle - a.idle
+      const pull = need > a.lent ? a.lent : need
+      if (pull < MIN_TX_AMOUNT) continue
+      try {
+        console.log(`[bow] Withdrawing ${ethers.formatUnits(pull, 6)} ${a.symbol} from lending (idle ${ethers.formatUnits(a.idle, 6)} < target ${ethers.formatUnits(targetIdle, 6)}).`)
+        const tx = await vault.withdrawFromLending(a.addr, pull)
+        console.log(`[bow]   tx ${tx.hash}`)
+        await tx.wait()
+      } catch (err) {
+        console.error(`[bow] withdrawFromLending ${a.symbol} failed:`, err.shortMessage || err.message)
+      }
+    }
+  }
+}
+
 async function settleExpired(wallet, tournament, state) {
   const total = Number(await tournament.totalRounds())
   if (total === 0) return 0
@@ -363,6 +427,12 @@ async function main() {
 
   // 3. Execute if needed
   await tryExecute(wallet, vault, decision, state)
+
+  // 4. Auto-balance the lending leg. We do this every tick (not only after
+  //    rebalances) because deposits land in idle continuously and need to be
+  //    routed to lending to earn yield, and withdraws need to be pre-funded
+  //    by pulling from lending before users hit claimWithdraw.
+  await autoBalanceLending(vault)
 }
 
 main().catch(err => { console.error(err); process.exit(1) })

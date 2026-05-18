@@ -37,11 +37,12 @@ interface Decision {
 const c = ACTIVE_CHAIN.contracts as Record<string, string>
 
 const CONTRACTS = [
-  { label: 'HybridVault', addr: c.bowVault, role: '3-asset vault, cooldown withdraw, AI-callable executeAllocation' },
-  { label: 'DecisionLog', addr: c.decisionLog, role: 'Append-only on-chain reasoning record, reasoning text in event data' },
-  { label: 'TournamentVault', addr: c.tournamentVault, role: '24h rounds, human votes on 3-asset allocation, settle on-chain' },
+  { label: 'HybridVault V2', addr: c.bowVault, role: '3-asset vault with real treasury control. AI-callable supplyToLending / withdrawFromLending routes idle USDC and EURC into BowLendingPool. Cooldown withdraw, AI-callable executeAllocation.' },
+  { label: 'DecisionLog', addr: c.decisionLog, role: 'Append-only on-chain reasoning record. Reasoning text lives in event data, structured pcts in storage.' },
+  { label: 'TournamentVault', addr: c.tournamentVault, role: '24h rounds, human votes on 3-asset allocation, settle on-chain.' },
+  { label: 'BowLendingPool', addr: c.lendingPool, role: 'Aave-style supply pool live on Arc testnet. The vault routes idle USDC and EURC through this pool to earn supply yield. Replaceable by an Aave V3 adapter once Aave lands on Arc.' },
   { label: 'BowAgentIdentity (ERC-8004)', addr: c.agentIdentity, role: 'ERC-8004 IdentityRegistry. Bow agent registered as agentId #1, discoverable for A2A composability.' },
-  { label: 'BowLendingPool', addr: c.lendingPool, role: 'Aave-style supply pool. Demonstrates the lending leg of the strategy on Arc testnet. Replaceable by Aave V3 once it lands on Arc.' },
+  { label: 'HybridVault V1 (archive)', addr: c.bowVaultV1, role: 'Original V1 vault, deprecated 2026-05-18. Holds residual USDC until users claim. Kept for transparency, not used by the frontend.' },
 ]
 
 const ai = '0x3a0Dd90212838f32a953Acd4B32596b62859324A'
@@ -345,10 +346,9 @@ export default function JudgeView() {
                 Live operator position (refreshes every page load — interest accrues per second)
               </div>
               <div className="text-[11px] text-[var(--fg-dim)] mb-4 leading-relaxed">
-                The AI operator wallet supplied <span className="mono text-[var(--fg)]">2.000000 USDC</span>{' '}
-                into the pool at bootstrap. The principal + interest below is read from the contract
-                <code className="mono text-[var(--fg)]"> balanceOf(operator, asset)</code> view in real time.
-                Try refreshing this page in 10 minutes — the interest line will be higher.
+                The vault auto-routes a portion of each user deposit into BowLendingPool. The principal +
+                interest below is read from <code className="mono text-[var(--fg)]">balanceOf(operator, asset)</code> in
+                real time. Refresh in 10 minutes and the interest line will be higher.
               </div>
               <div className="grid md:grid-cols-3 gap-3 text-xs">
                 {lending.operatorPosition.perAsset.map(p => {
@@ -389,8 +389,9 @@ export default function JudgeView() {
         <SectionTitle>Honest MVP scope</SectionTitle>
         <ul className="space-y-2 text-sm text-[var(--fg-muted)] leading-relaxed">
           <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NOW</span><span>Vault holds and accounts user deposits. AI rebalances target allocation on-chain. Tournament rounds open and settle. Notional returns measured (no real DEX swap yet because Arc testnet pool depth is bootstrap-stage).</span></li>
+          <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NOW</span><span>Lending leg is live on Arc testnet. The vault auto-routes idle USDC and EURC into BowLendingPool (3.30% / 1.91% APR mirroring Aave V3 mainnet) and pulls back on withdraws. USYC stays idle since its yield is native via Circle issuance.</span></li>
           <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NEXT</span><span>Real DEX swap execution on rebalance through a Circle App Kit swap component or direct AMM, with slippage caps. Move share valuation off the nominal 1:1 anchor to a price-oracle model.</span></li>
-          <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NEXT</span><span>Lending leg for USDC + EURC. The 3.30% and 1.91% rates surfaced above are Aave V3 mainnet benchmarks. Once Aave or another lending protocol deploys on Arc (mainnet expected soon per Circle docs), Bow routes idle USDC and EURC through aTokens to realise the yield on-chain.</span></li>
+          <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NEXT</span><span>Swap BowLendingPool for an Aave V3 adapter once Aave or a comparable institutional protocol lands on Arc mainnet. The vault flow stays identical, only the pool address changes.</span></li>
           <li className="flex gap-3"><span className="mono text-[var(--fg-muted)] shrink-0">LATER</span><span>Circle Wallets API for email-based onboarding. Paymaster for gasless first deposit. CCTP for cross-chain USDC entry.</span></li>
         </ul>
       </section>

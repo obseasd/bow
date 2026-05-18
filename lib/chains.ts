@@ -54,10 +54,16 @@ export const ARC_TESTNET = {
     // Common
     permit2: '0x000000000022D473030F116dDEE9F6B43aC78BA3',
     multicall3: '0xcA11bde05977b3631167028862bE2a173976CA11',
-    // Bow contracts (deployed on Arc testnet 2026-05-16)
-    bowVault: '0x87107f7122FD12cB15740DfA292FffB0d7f180B2',
-    decisionLog: '0xf547A123859C868fC42d720251B1DBdb59d2e5c9',
-    tournamentVault: '0xc64F830e8a38f9253649D318589c82a9A3b486CE',
+    // Bow V2 contracts (deployed 2026-05-18) — vault has lending pool
+    // wiring so the AI operator can deploy idle USDC/USYC/EURC into
+    // BowLendingPool and pull back for user withdraws.
+    bowVault: '0x13260290cc0e655f34c7e87946a502a6f248e5cb',
+    decisionLog: '0x0fBab34958b17099af962f615acA7F03C77291cE',
+    tournamentVault: '0xC2ce20163Ce4eF95dFC32408aF2e18cB428763BA',
+    // V1 archive (kept for reference, 34 USDC TVL stuck until users claim)
+    bowVaultV1: '0x87107f7122FD12cB15740DfA292FffB0d7f180B2',
+    decisionLogV1: '0xf547A123859C868fC42d720251B1DBdb59d2e5c9',
+    tournamentVaultV1: '0xc64F830e8a38f9253649D318589c82a9A3b486CE',
     // BowAgentIdentity (ERC-8004 IdentityRegistry), deployed 2026-05-17
     // Agent registered as agentId #1, owned by the AI operator wallet.
     agentIdentity: '0x92e6b40da9566d6b7176420d88818500db77d122',
