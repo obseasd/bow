@@ -43,9 +43,21 @@ export async function GET() {
     },
 
     managedAssets: [
-      { symbol: 'USDC', address: c.USDC, role: 'pure-stable', yieldApr: 0.0, decimals: 6, issuer: 'Circle' },
-      { symbol: 'USYC', address: c.USYC, role: 'tbill-yield',  yieldApr: 3.55, decimals: 6, issuer: 'Circle' },
-      { symbol: 'EURC', address: c.EURC, role: 'fx',            yieldApr: 0.0, decimals: 6, issuer: 'Circle' },
+      {
+        symbol: 'USDC', address: c.USDC, role: 'stable-reserve', decimals: 6, issuer: 'Circle',
+        yieldApr: 3.30,
+        yieldSource: 'Aave V3 Ethereum mainnet supply rate (DefiLlama, benchmark for what USDC would earn once Bow routes it through a lending leg on Arc; no lending protocol live on Arc testnet yet)',
+      },
+      {
+        symbol: 'USYC', address: c.USYC, role: 'tbill-yield', decimals: 6, issuer: 'Circle',
+        yieldApr: 3.55,
+        yieldSource: 'Circle native USYC issuance, real on-chain accrual',
+      },
+      {
+        symbol: 'EURC', address: c.EURC, role: 'fx-leg', decimals: 6, issuer: 'Circle',
+        yieldApr: 1.91,
+        yieldSource: 'Aave V3 Ethereum mainnet supply rate (DefiLlama, same benchmark caveat as USDC) + EUR/USD FX exposure',
+      },
     ],
 
     capabilities: [

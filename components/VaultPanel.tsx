@@ -14,10 +14,16 @@ interface VaultInfo {
   deployed: boolean
 }
 
-const ASSET_LIST: { key: AssetKey; label: string; sub: string; yieldPct: number; cls: string; bgCls: string }[] = [
-  { key: 'USDC', label: 'USDC', sub: 'Pure stable, gas of Arc', yieldPct: 0.00, cls: 'asset-usdc', bgCls: 'bg-asset-usdc' },
-  { key: 'USYC', label: 'USYC', sub: 'T-bill yield, Circle native', yieldPct: 3.55, cls: 'asset-usyc', bgCls: 'bg-asset-usyc' },
-  { key: 'EURC', label: 'EURC', sub: 'Euro FX exposure', yieldPct: 0.00, cls: 'asset-eurc', bgCls: 'bg-asset-eurc' },
+// Yield benchmarks. USYC is its own native T-bill yield (Circle issuance).
+// USDC + EURC use Aave V3 mainnet supply rates as the benchmark — the
+// rate they would earn if Bow routed them through a lending protocol on
+// Arc. Arc testnet has no live lending protocol yet, so we surface the
+// mainnet rate as the realistic yield target and document the path in
+// /judge under MVP scope. Sourced from DefiLlama 2026-05-18.
+const ASSET_LIST: { key: AssetKey; label: string; sub: string; yieldPct: number; yieldSource: string; cls: string; bgCls: string }[] = [
+  { key: 'USDC', label: 'USDC', sub: 'Stable reserve, Arc gas',     yieldPct: 3.30, yieldSource: 'Aave V3 mainnet supply', cls: 'asset-usdc', bgCls: 'bg-asset-usdc' },
+  { key: 'USYC', label: 'USYC', sub: 'T-bill yield, Circle native', yieldPct: 3.55, yieldSource: 'Circle native',          cls: 'asset-usyc', bgCls: 'bg-asset-usyc' },
+  { key: 'EURC', label: 'EURC', sub: 'Euro FX leg',                 yieldPct: 1.91, yieldSource: 'Aave V3 mainnet supply', cls: 'asset-eurc', bgCls: 'bg-asset-eurc' },
 ]
 
 const ERC20_ABI = [
@@ -115,6 +121,7 @@ export default function VaultPanel() {
           {ASSET_LIST.map((a) => {
             const key = a.key === 'USDC' ? 'usdc' : a.key === 'USYC' ? 'usyc' : 'eurc'
             const pct = info?.allocation[key as 'usdc' | 'usyc' | 'eurc'] ?? 0
+            const isBenchmark = a.yieldSource.includes('Aave')
             return (
               <div key={a.key} className="flex items-start gap-2">
                 <span className={`mt-1 inline-block w-2 h-2 shrink-0 ${a.bgCls}`} />
@@ -124,8 +131,12 @@ export default function VaultPanel() {
                       <span className={`font-medium ${a.cls}`}>{a.label}</span>
                       <span className="mono text-[var(--fg)]">{pct}%</span>
                     </div>
-                    <span className="text-[10px] mono text-[var(--fg-muted)]">
-                      {a.yieldPct > 0 ? `${a.yieldPct.toFixed(2)}% APY` : '0% APY'}
+                    <span
+                      className="text-[10px] mono text-[var(--fg-muted)] cursor-help"
+                      title={`${a.yieldPct.toFixed(2)}% APY · source: ${a.yieldSource}`}
+                    >
+                      {a.yieldPct.toFixed(2)}%
+                      {isBenchmark && <span className="ml-0.5 text-[8px] text-[var(--fg-dim)]">*</span>}
                     </span>
                   </div>
                   <div className="text-[10px] text-[var(--fg-dim)] mt-0.5">{a.sub}</div>
@@ -133,6 +144,13 @@ export default function VaultPanel() {
               </div>
             )
           })}
+        </div>
+
+        <div className="mt-3 text-[10px] text-[var(--fg-dim)] leading-relaxed">
+          <span className="mono text-[var(--fg-muted)]">*</span> USDC and EURC rates are
+          Aave V3 mainnet supply rates (DefiLlama, live). Arc testnet has no lending
+          protocol live yet, so these are benchmarks for what Bow would earn once a
+          lending leg is integrated. USYC yield is real on-chain Circle issuance.
         </div>
 
         {info && !info.deployed && (

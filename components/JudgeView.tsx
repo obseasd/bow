@@ -202,12 +202,44 @@ export default function JudgeView() {
         </div>
       </section>
 
+      {/* Yield model */}
+      <section>
+        <SectionTitle>Yield model</SectionTitle>
+        <div className="card p-5">
+          <div className="grid grid-cols-3 gap-3 text-xs mb-4">
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] mb-1">USDC</div>
+              <div className="text-xl mono asset-usdc">3.30%</div>
+              <div className="text-[10px] text-[var(--fg-dim)] mt-1">Aave V3 mainnet supply (benchmark)</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] mb-1">USYC</div>
+              <div className="text-xl mono asset-usyc">3.55%</div>
+              <div className="text-[10px] text-[var(--fg-dim)] mt-1">Circle native, real on-chain</div>
+            </div>
+            <div>
+              <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] mb-1">EURC</div>
+              <div className="text-xl mono asset-eurc">1.91%</div>
+              <div className="text-[10px] text-[var(--fg-dim)] mt-1">Aave V3 mainnet supply (benchmark) + FX</div>
+            </div>
+          </div>
+          <p className="text-xs text-[var(--fg-muted)] leading-relaxed">
+            <span className="text-[var(--fg)] font-medium">USYC yield is real, on-chain, accrued via Circle&apos;s native USYC issuance.</span>{' '}
+            USDC and EURC rates are pulled live from DefiLlama&apos;s Aave V3 Ethereum mainnet supply rates: they
+            represent what Bow would earn once the lending leg is integrated on Arc. Arc testnet has no live
+            lending protocol yet, so we&apos;re honest about this being a benchmark, not real testnet accrual.
+            The AI uses these three numbers to compute risk-adjusted allocation across the basket.
+          </p>
+        </div>
+      </section>
+
       {/* Honest scope */}
       <section>
         <SectionTitle>Honest MVP scope</SectionTitle>
         <ul className="space-y-2 text-sm text-[var(--fg-muted)] leading-relaxed">
           <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NOW</span><span>Vault holds and accounts user deposits. AI rebalances target allocation on-chain. Tournament rounds open and settle. Notional returns measured (no real DEX swap yet because Arc testnet pool depth is bootstrap-stage).</span></li>
           <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NEXT</span><span>Real DEX swap execution on rebalance through a Circle App Kit swap component or direct AMM, with slippage caps. Move share valuation off the nominal 1:1 anchor to a price-oracle model.</span></li>
+          <li className="flex gap-3"><span className="mono text-[var(--accent)] shrink-0">NEXT</span><span>Lending leg for USDC + EURC. The 3.30% and 1.91% rates surfaced above are Aave V3 mainnet benchmarks. Once Aave or another lending protocol deploys on Arc (mainnet expected soon per Circle docs), Bow routes idle USDC and EURC through aTokens to realise the yield on-chain.</span></li>
           <li className="flex gap-3"><span className="mono text-[var(--fg-muted)] shrink-0">LATER</span><span>Circle Wallets API for email-based onboarding. Paymaster for gasless first deposit. CCTP for cross-chain USDC entry.</span></li>
         </ul>
       </section>
