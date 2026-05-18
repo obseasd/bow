@@ -8,12 +8,17 @@ export const ARC_TESTNET = {
   id: 5042002,
   name: 'Arc Testnet',
   shortName: 'arc',
-  // Canteen-issued personal RPC. Authenticated, no method allowlist
-  // surprises in our path, and not capped at 10,000 blocks like the
-  // public endpoint. The token is per-developer; rotate via
-  // `arc-canteen rotate-rpc-key`. For production we should move this
-  // into an env var, but for the hackathon a single shared key is fine.
+  // Server-side RPC: Canteen-issued personal endpoint. Authenticated,
+  // 50K block range on eth_getLogs, friendly to ethers.js batching.
+  // Used by getProvider() in lib/contract.ts (server-side fetch only).
+  // NOT usable from the browser because the Canteen relay does not
+  // return CORS headers — we keep it for /api routes only.
   rpc: 'https://rpc.testnet.arc-node.thecanteenapp.com/v1/swrm_69d78a8fe4b1592488ffcf5b007e66fa9c5cda8baf4f3791bb7dec518258e097',
+  // Public RPC: open CORS, usable from the browser via wagmi/viem.
+  // Has the 10K block limit on eth_getLogs but that does not matter
+  // for the client (the client only does simple eth_call / eth_getBalance
+  // reads, no log queries).
+  publicRpc: 'https://rpc.testnet.arc.network',
   rpcAlternates: [
     'https://rpc.testnet.arc.network',
     'https://rpc.blockdaemon.testnet.arc.network',
