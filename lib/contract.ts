@@ -130,6 +130,80 @@ export async function getLatestDecision(): Promise<LatestDecisionData | null> {
   }
 }
 
+export interface LendingState {
+  pool: string
+  reserves: Array<{
+    symbol: string
+    asset: string
+    accepted: boolean
+    aprBps: number
+    totalSupplied: string
+  }>
+  operatorPosition: {
+    address: string
+    perAsset: Array<{
+      symbol: string
+      principalAndInterest: string
+      interestEarned: string
+    }>
+  }
+}
+
+const LENDING_ABI = [
+  'function getReserveInfo(address) view returns (bool, uint256, uint256)',
+  'function balanceOf(address, address) view returns (uint256)',
+  'function interestEarned(address, address) view returns (uint256)',
+] as const
+
+export async function getLendingState(): Promise<LendingState | null> {
+  const c: any = ACTIVE_CHAIN.contracts
+  const poolAddr = c.lendingPool
+  if (!poolAddr) return null
+  const provider = getProvider()
+  const pool = new ethers.Contract(poolAddr, LENDING_ABI, provider)
+  const operator = '0x3a0Dd90212838f32a953Acd4B32596b62859324A'
+  const tokens = [
+    { symbol: 'USDC', asset: c.USDC },
+    { symbol: 'USYC', asset: c.USYC },
+    { symbol: 'EURC', asset: c.EURC },
+  ]
+  try {
+    const reserves = await Promise.all(
+      tokens.map(async t => {
+        const [accepted, aprBps, totalSupplied] = await pool.getReserveInfo(t.asset)
+        return {
+          symbol: t.symbol,
+          asset: t.asset,
+          accepted: Boolean(accepted),
+          aprBps: Number(aprBps),
+          totalSupplied: totalSupplied.toString(),
+        }
+      })
+    )
+    const perAsset = await Promise.all(
+      tokens.map(async t => {
+        const [bal, interest] = await Promise.all([
+          pool.balanceOf(operator, t.asset),
+          pool.interestEarned(operator, t.asset),
+        ])
+        return {
+          symbol: t.symbol,
+          principalAndInterest: bal.toString(),
+          interestEarned: interest.toString(),
+        }
+      })
+    )
+    return {
+      pool: poolAddr,
+      reserves,
+      operatorPosition: { address: operator, perAsset },
+    }
+  } catch (e) {
+    console.error('[bow contract] getLendingState failed:', (e as Error).message)
+    return null
+  }
+}
+
 export async function getRecentRounds(limit = 8): Promise<RoundData[]> {
   const tourAddr = (ACTIVE_CHAIN.contracts as any).tournamentVault
   if (!tourAddr) return []

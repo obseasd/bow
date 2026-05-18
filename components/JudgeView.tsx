@@ -4,6 +4,13 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import { ACTIVE_CHAIN } from '@/lib/chains'
 
+interface LendingState {
+  deployed: boolean
+  pool?: string
+  reserves?: Array<{ symbol: string; asset: string; accepted: boolean; aprBps: number; totalSupplied: string }>
+  operatorPosition?: { address: string; perAsset: Array<{ symbol: string; principalAndInterest: string; interestEarned: string }> }
+}
+
 interface Snapshot {
   totalRounds: number
   totalDecisions: number
@@ -34,6 +41,7 @@ const CONTRACTS = [
   { label: 'DecisionLog', addr: c.decisionLog, role: 'Append-only on-chain reasoning record, reasoning text in event data' },
   { label: 'TournamentVault', addr: c.tournamentVault, role: '24h rounds, human votes on 3-asset allocation, settle on-chain' },
   { label: 'BowAgentIdentity (ERC-8004)', addr: c.agentIdentity, role: 'ERC-8004 IdentityRegistry. Bow agent registered as agentId #1, discoverable for A2A composability.' },
+  { label: 'BowLendingPool', addr: c.lendingPool, role: 'Aave-style supply pool. Demonstrates the lending leg of the strategy on Arc testnet. Replaceable by Aave V3 once it lands on Arc.' },
 ]
 
 const ai = '0x3a0Dd90212838f32a953Acd4B32596b62859324A'
@@ -46,10 +54,12 @@ function shortAddr(a: string) {
 export default function JudgeView() {
   const [snap, setSnap] = useState<Snapshot | null>(null)
   const [latest, setLatest] = useState<Decision | null>(null)
+  const [lending, setLending] = useState<LendingState | null>(null)
 
   useEffect(() => {
     fetch('/api/onchain').then(r => r.json()).then(setSnap).catch(() => {})
     fetch('/api/decisions').then(r => r.json()).then(d => setLatest(d.latest)).catch(() => {})
+    fetch('/api/lending').then(r => r.json()).then(setLending).catch(() => {})
   }, [])
 
   const tvl = snap ? (Number(snap.totalAssetsUsd) / 1e6).toFixed(2) : '—'
@@ -273,6 +283,105 @@ export default function JudgeView() {
             withdraw + rebalance.
           </div>
         </div>
+      </section>
+
+      {/* Lending integration — live on Arc testnet */}
+      <section>
+        <SectionTitle>Lending integration (live on Arc testnet)</SectionTitle>
+        {lending?.deployed && lending.reserves && lending.operatorPosition ? (
+          <div className="space-y-3">
+            <div className="card p-5">
+              <div className="flex items-start justify-between flex-wrap gap-3 mb-4">
+                <div>
+                  <div className="text-sm font-medium text-[var(--fg)]">BowLendingPool</div>
+                  <div className="text-[11px] text-[var(--fg-dim)] mt-1 leading-relaxed">
+                    Aave-style mock pool deployed on Arc testnet. Demonstrates the lending leg of Bow&apos;s
+                    strategy end-to-end, with linear interest accrual on each supplied asset. Replaceable
+                    by a thin Aave V3 adapter once Aave deploys on Arc mainnet.
+                  </div>
+                </div>
+                <a
+                  href={`${ACTIVE_CHAIN.explorer}/address/${lending.pool}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-[10px] mono px-3 py-1.5 border border-[var(--accent)] text-[var(--accent)] hover:bg-[var(--accent-soft)] transition shrink-0"
+                  style={{ borderRadius: 2 }}
+                >
+                  {lending.pool!.slice(0, 8)}…{lending.pool!.slice(-6)} ↗
+                </a>
+              </div>
+
+              {/* Reserves table */}
+              <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] mb-2">
+                Reserves on-chain
+              </div>
+              <div className="text-[11px] mono">
+                <div className="grid grid-cols-[60px_90px_1fr_120px] gap-3 text-[var(--fg-dim)] pb-1 border-b border-[var(--border)]">
+                  <div>Asset</div>
+                  <div className="text-right">APR</div>
+                  <div className="text-right">Total supplied</div>
+                  <div className="text-right">Status</div>
+                </div>
+                {lending.reserves.map(r => {
+                  const cls = r.symbol === 'USDC' ? 'asset-usdc' : r.symbol === 'USYC' ? 'asset-usyc' : 'asset-eurc'
+                  const totalFmt = (Number(r.totalSupplied) / 1e6).toFixed(4)
+                  return (
+                    <div key={r.symbol} className="grid grid-cols-[60px_90px_1fr_120px] gap-3 py-2 border-b border-[var(--border)] last:border-b-0">
+                      <div className={`font-medium ${cls}`}>{r.symbol}</div>
+                      <div className="text-right text-[var(--fg)]">{(r.aprBps / 100).toFixed(2)}%</div>
+                      <div className="text-right text-[var(--fg)]">{totalFmt}</div>
+                      <div className="text-right text-[var(--fg-muted)]">
+                        {r.accepted ? <span className="text-[var(--accent)]">accepted</span> : 'disabled'}
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            {/* Operator live position with accrued interest */}
+            <div className="card p-5">
+              <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] mb-2">
+                Live operator position (refreshes every page load — interest accrues per second)
+              </div>
+              <div className="text-[11px] text-[var(--fg-dim)] mb-4 leading-relaxed">
+                The AI operator wallet supplied <span className="mono text-[var(--fg)]">2.000000 USDC</span>{' '}
+                into the pool at bootstrap. The principal + interest below is read from the contract
+                <code className="mono text-[var(--fg)]"> balanceOf(operator, asset)</code> view in real time.
+                Try refreshing this page in 10 minutes — the interest line will be higher.
+              </div>
+              <div className="grid md:grid-cols-3 gap-3 text-xs">
+                {lending.operatorPosition.perAsset.map(p => {
+                  const cls = p.symbol === 'USDC' ? 'asset-usdc' : p.symbol === 'USYC' ? 'asset-usyc' : 'asset-eurc'
+                  const bal = Number(p.principalAndInterest) / 1e6
+                  const earned = Number(p.interestEarned) / 1e6
+                  return (
+                    <div key={p.symbol} className="card p-3" style={{ background: 'var(--bg-elevated)' }}>
+                      <div className={`text-[10px] uppercase tracking-wider mb-1 ${cls}`}>{p.symbol}</div>
+                      <div className="text-lg mono text-[var(--fg)]">{bal.toFixed(6)}</div>
+                      <div className="text-[10px] text-[var(--accent)] mono mt-1">
+                        +{(earned * 1e6).toFixed(2)} micro{p.symbol} earned
+                      </div>
+                      <div className="text-[10px] text-[var(--fg-dim)] mt-0.5">
+                        ({(earned).toFixed(8)} {p.symbol})
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="text-[10px] text-[var(--fg-dim)] leading-relaxed px-1">
+              <span className="text-[var(--fg-muted)] mono">Disclaimer:</span> BowLendingPool is a deliberate
+              testnet mock — Aave V3 / Compound / Morpho are not live on Arc yet. The rates (USDC 3.30%, USYC 0%,
+              EURC 1.91%) mirror live Aave V3 Ethereum mainnet rates (DefiLlama). When Aave-Arc ships, the pool
+              swap is one thin adapter contract: `Pool.supply` and `Pool.withdraw` calls in place of our mock&apos;s
+              supply/withdraw. The vault flow stays identical.
+            </div>
+          </div>
+        ) : (
+          <div className="card p-5 text-sm text-[var(--fg-dim)]">Loading lending pool state...</div>
+        )}
       </section>
 
       {/* Honest scope */}

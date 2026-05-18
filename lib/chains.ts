@@ -61,6 +61,12 @@ export const ARC_TESTNET = {
     // BowAgentIdentity (ERC-8004 IdentityRegistry), deployed 2026-05-17
     // Agent registered as agentId #1, owned by the AI operator wallet.
     agentIdentity: '0x92e6b40da9566d6b7176420d88818500db77d122',
+    // BowLendingPool, deployed 2026-05-18. Aave-style mock pool that
+    // demonstrates the lending leg of the Bow strategy on Arc testnet
+    // (where no production lending protocol is live yet). Reserves:
+    // USDC 3.30% APR, USYC 0% (use native Circle yield), EURC 1.91% APR.
+    // Rates mirror Aave V3 Ethereum mainnet supply via DefiLlama.
+    lendingPool: '0xa4a9adf4a24ab16d16c426c7f6ab0f54ee8cc11d',
   },
 } as const
 
