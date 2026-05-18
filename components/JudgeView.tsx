@@ -223,13 +223,55 @@ export default function JudgeView() {
               <div className="text-[10px] text-[var(--fg-dim)] mt-1">Aave V3 mainnet supply (benchmark) + FX</div>
             </div>
           </div>
-          <p className="text-xs text-[var(--fg-muted)] leading-relaxed">
+          <p className="text-xs text-[var(--fg-muted)] leading-relaxed mb-4">
             <span className="text-[var(--fg)] font-medium">USYC yield is real, on-chain, accrued via Circle&apos;s native USYC issuance.</span>{' '}
             USDC and EURC rates are pulled live from DefiLlama&apos;s Aave V3 Ethereum mainnet supply rates: they
             represent what Bow would earn once the lending leg is integrated on Arc. Arc testnet has no live
             lending protocol yet, so we&apos;re honest about this being a benchmark, not real testnet accrual.
             The AI uses these three numbers to compute risk-adjusted allocation across the basket.
           </p>
+
+          <div className="text-[10px] uppercase tracking-wider text-[var(--fg-muted)] mb-2">
+            Lending protocols that support BOTH USDC and EURC (sourced via DefiLlama, ranked by EURC pool TVL)
+          </div>
+          <div className="text-[11px] space-y-1.5 mono">
+            <div className="grid grid-cols-[1fr_80px_90px_90px] gap-2 text-[var(--fg-dim)] pb-1 border-b border-[var(--border)]">
+              <div>Protocol · Chain</div>
+              <div className="text-right">USDC APY</div>
+              <div className="text-right">EURC APY</div>
+              <div className="text-right">EURC TVL</div>
+            </div>
+            <div className="grid grid-cols-[1fr_80px_90px_90px] gap-2 text-[var(--fg-muted)]">
+              <div className="text-[var(--fg)]">Aave V3 · Ethereum</div>
+              <div className="text-right">3.30%</div>
+              <div className="text-right">1.91%</div>
+              <div className="text-right">$22.3M</div>
+            </div>
+            <div className="grid grid-cols-[1fr_80px_90px_90px] gap-2 text-[var(--fg-muted)]">
+              <div className="text-[var(--fg)]">Aave V3 · Base</div>
+              <div className="text-right">3.10%</div>
+              <div className="text-right">1.49%</div>
+              <div className="text-right">$6.0M</div>
+            </div>
+            <div className="grid grid-cols-[1fr_80px_90px_90px] gap-2 text-[var(--fg-muted)]">
+              <div className="text-[var(--fg)]">Morpho Blue · Ethereum</div>
+              <div className="text-right">~4.0%</div>
+              <div className="text-right">3.00%</div>
+              <div className="text-right">$57.0M</div>
+            </div>
+            <div className="grid grid-cols-[1fr_80px_90px_90px] gap-2 text-[var(--fg-muted)]">
+              <div className="text-[var(--fg)]">Fluid Lending · Base</div>
+              <div className="text-right">3.50%</div>
+              <div className="text-right">1.89%</div>
+              <div className="text-right">$1.9M</div>
+            </div>
+          </div>
+          <div className="text-[10px] text-[var(--fg-dim)] mt-3 leading-relaxed">
+            Path of least resistance for Bow once Arc DeFi matures: Aave V3 (institutional defaults), then
+            Morpho Blue (higher yield via Steakhouse vaults) if it lands on Arc. Both already support USDC + EURC
+            natively, so the integration is a thin wrapper that mints aUSDC/aEURC at deposit and redeems on
+            withdraw + rebalance.
+          </div>
         </div>
       </section>
 

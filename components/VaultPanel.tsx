@@ -6,6 +6,7 @@ import { parseUnits, formatUnits, type Address } from 'viem'
 import { ACTIVE_CHAIN, ASSETS, type AssetKey } from '@/lib/chains'
 import { showToast } from './Toast'
 import WalletPicker from './WalletPicker'
+import ChainSwitchBanner from './ChainSwitchBanner'
 
 interface VaultInfo {
   allocation: { usdc: number; usyc: number; eurc: number }
@@ -75,7 +76,9 @@ export default function VaultPanel() {
   }, [])
 
   return (
-    <div className="grid md:grid-cols-[1fr_360px] gap-4">
+    <div>
+      <ChainSwitchBanner />
+      <div className="grid md:grid-cols-[1fr_360px] gap-4">
       {/* Left: AI's current allocation */}
       <div className="card p-6">
         <div className="flex items-center justify-between mb-4">
@@ -185,6 +188,7 @@ export default function VaultPanel() {
         ) : (
           <WithdrawForm vaultAddr={vaultAddr} tournamentAddr={tournamentAddr} isVaultDeployed={isVaultDeployed} />
         )}
+      </div>
       </div>
     </div>
   )
