@@ -1,14 +1,15 @@
 'use client'
 
-import { useAccount, useConnect, useDisconnect } from 'wagmi'
-import { injected } from 'wagmi/connectors'
-import { useState, useEffect } from 'react'
+import { useAccount, useDisconnect } from 'wagmi'
+import { useEffect, useState } from 'react'
+import WalletPicker from './WalletPicker'
 
 export default function WalletButton() {
   const { address, isConnected } = useAccount()
-  const { connect, connectors } = useConnect()
   const { disconnect } = useDisconnect()
   const [mounted, setMounted] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
+
   useEffect(() => setMounted(true), [])
 
   if (!mounted) {
@@ -21,15 +22,19 @@ export default function WalletButton() {
 
   if (!isConnected) {
     return (
-      <button
-        className="btn-accent text-xs px-3 py-1.5"
-        style={{ borderRadius: 2 }}
-        onClick={() => connect({ connector: connectors[0] || injected() })}
-      >
-        Connect wallet
-      </button>
+      <>
+        <button
+          className="btn-accent text-xs px-3 py-1.5"
+          style={{ borderRadius: 2 }}
+          onClick={() => setPickerOpen(true)}
+        >
+          Connect wallet
+        </button>
+        <WalletPicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      </>
     )
   }
+
   const short = address ? `${address.slice(0, 6)}…${address.slice(-4)}` : ''
   return (
     <button

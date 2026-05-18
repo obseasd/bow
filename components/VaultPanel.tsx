@@ -5,6 +5,7 @@ import { useAccount, useReadContract, useWriteContract, useSwitchChain, useChain
 import { parseUnits, formatUnits, type Address } from 'viem'
 import { ACTIVE_CHAIN, ASSETS, type AssetKey } from '@/lib/chains'
 import { showToast } from './Toast'
+import WalletPicker from './WalletPicker'
 
 interface VaultInfo {
   allocation: { usdc: number; usyc: number; eurc: number }
@@ -177,6 +178,7 @@ function DepositForm({ vaultAddr, isVaultDeployed }: { vaultAddr: string; isVaul
   const [selectedAsset, setSelectedAsset] = useState<AssetKey>('USDC')
   const [amount, setAmount] = useState('')
   const [step, setStep] = useState<'idle' | 'approving' | 'depositing'>('idle')
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
@@ -293,7 +295,13 @@ function DepositForm({ vaultAddr, isVaultDeployed }: { vaultAddr: string; isVaul
 
       <div className="mt-3">
         {!isConnected ? (
-          <div className="text-[11px] text-[var(--fg-dim)] text-center py-2">Connect a wallet to deposit</div>
+          <button
+            className="btn-accent w-full text-sm"
+            style={{ borderRadius: 2 }}
+            onClick={() => setPickerOpen(true)}
+          >
+            Connect wallet
+          </button>
         ) : !isVaultDeployed ? (
           <button className="btn-secondary w-full text-sm" style={{ borderRadius: 2 }} disabled>Vault not deployed</button>
         ) : needsApproval ? (
@@ -321,6 +329,8 @@ function DepositForm({ vaultAddr, isVaultDeployed }: { vaultAddr: string; isVaul
         Deposit any of USDC, USYC, EURC. You receive shares of the vault, and the AI
         starts managing your exposure across all three based on live yield + FX state.
       </div>
+
+      <WalletPicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
     </>
   )
 }
@@ -330,6 +340,7 @@ function DepositForm({ vaultAddr, isVaultDeployed }: { vaultAddr: string; isVaul
 function WithdrawForm({ vaultAddr, tournamentAddr, isVaultDeployed }: { vaultAddr: string; tournamentAddr: string; isVaultDeployed: boolean }) {
   const [amount, setAmount] = useState('')
   const [step, setStep] = useState<'idle' | 'requesting' | 'claiming'>('idle')
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
@@ -419,7 +430,21 @@ function WithdrawForm({ vaultAddr, tournamentAddr, isVaultDeployed }: { vaultAdd
   }
 
   if (!isConnected) {
-    return <div className="text-[11px] text-[var(--fg-dim)] text-center py-6">Connect a wallet to withdraw</div>
+    return (
+      <>
+        <button
+          className="btn-accent w-full text-sm"
+          style={{ borderRadius: 2 }}
+          onClick={() => setPickerOpen(true)}
+        >
+          Connect wallet
+        </button>
+        <div className="text-[10px] text-[var(--fg-dim)] mt-3 leading-relaxed">
+          Withdraws use a 1-round cooldown. Request burns shares now, claim at the next round.
+        </div>
+        <WalletPicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
+      </>
+    )
   }
 
   if (!isVaultDeployed) {

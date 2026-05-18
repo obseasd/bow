@@ -1,0 +1,111 @@
+'use client'
+
+import { useEffect, useState } from 'react'
+import { useConnect } from 'wagmi'
+import { injected } from 'wagmi/connectors'
+import { useDetectedProviders, type DetectedProvider } from '@/lib/wallet-providers'
+
+export default function WalletPicker({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const providers = useDetectedProviders()
+  const { connect, isPending } = useConnect()
+  const [pickingUuid, setPickingUuid] = useState<string | null>(null)
+
+  // Close on Escape
+  useEffect(() => {
+    if (!open) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [open, onClose])
+
+  if (!open) return null
+
+  async function pick(p: DetectedProvider) {
+    try {
+      setPickingUuid(p.uuid)
+      const connector = injected({
+        target: () => ({
+          id: p.rdns || p.uuid,
+          name: p.name,
+          provider: p.provider,
+        }),
+      })
+      connect({ connector }, {
+        onSuccess: () => { setPickingUuid(null); onClose() },
+        onError: (err) => {
+          console.error('connect failed', err)
+          setPickingUuid(null)
+        },
+      })
+    } catch (err) {
+      console.error('pick failed', err)
+      setPickingUuid(null)
+    }
+  }
+
+  return (
+    <div
+      className="fixed inset-0 z-[500] flex items-center justify-center p-4 modal-backdrop"
+      onClick={onClose}
+    >
+      <div
+        className="modal-panel card max-w-sm w-full"
+        style={{ background: 'var(--bg-card)' }}
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-start justify-between p-5 border-b border-[var(--border)]">
+          <div>
+            <div className="text-sm font-medium text-[var(--fg)]">Connect a wallet</div>
+            <div className="text-[10px] text-[var(--fg-dim)] mt-1">
+              {providers.length} wallet{providers.length === 1 ? '' : 's'} detected on this browser
+            </div>
+          </div>
+          <button
+            onClick={onClose}
+            className="text-[var(--fg-dim)] hover:text-[var(--fg)] text-xl leading-none -mt-1"
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="p-3 space-y-1.5">
+          {providers.length === 0 ? (
+            <div className="text-xs text-[var(--fg-muted)] p-4 text-center leading-relaxed">
+              No wallet detected. Install a browser wallet like MetaMask, Backpack, or Phantom and refresh this page.
+            </div>
+          ) : providers.map(p => {
+            const isPicking = pickingUuid === p.uuid
+            return (
+              <button
+                key={p.uuid}
+                onClick={() => pick(p)}
+                disabled={isPending || isPicking}
+                className="w-full flex items-center gap-3 p-3 border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] transition text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                style={{ borderRadius: 2 }}
+              >
+                {p.icon ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={p.icon} alt={p.name} className="w-7 h-7 rounded-sm shrink-0" />
+                ) : (
+                  <div className="w-7 h-7 rounded-sm bg-[var(--bg-elevated)] shrink-0" />
+                )}
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm text-[var(--fg)]">{p.name}</div>
+                  {p.rdns && <div className="text-[10px] text-[var(--fg-dim)] mono truncate">{p.rdns}</div>}
+                </div>
+                {isPicking && (
+                  <div className="text-[10px] mono text-[var(--accent)] shrink-0">connecting…</div>
+                )}
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="px-5 py-3 border-t border-[var(--border)] text-[10px] text-[var(--fg-dim)] leading-relaxed">
+          Bow runs on Arc testnet (chain 5042002). Your wallet will be asked to switch chains after connect.
+        </div>
+      </div>
+    </div>
+  )
+}

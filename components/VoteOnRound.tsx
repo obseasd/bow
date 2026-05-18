@@ -1,10 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { useAccount, useReadContract, useWriteContract, useSwitchChain, useChainId, useConnect } from 'wagmi'
-import { injected } from 'wagmi/connectors'
+import { useAccount, useReadContract, useWriteContract, useSwitchChain, useChainId } from 'wagmi'
 import { ACTIVE_CHAIN } from '@/lib/chains'
 import { showToast } from './Toast'
+import WalletPicker from './WalletPicker'
 
 const TOURNAMENT_ABI = [
   { name: 'voteHuman', type: 'function', stateMutability: 'nonpayable', inputs: [
@@ -44,13 +44,13 @@ export default function VoteOnRound({ roundId, aiUsdcPct, aiUsycPct, aiEurcPct, 
   const [usycPct, setUsycPct] = useState(33)
   const [eurcPct, setEurcPct] = useState(33)
   const [step, setStep] = useState<'idle' | 'voting'>('idle')
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   const tournamentAddr = (ACTIVE_CHAIN.contracts as any).tournamentVault as `0x${string}`
   const { address, isConnected } = useAccount()
   const chainId = useChainId()
   const { switchChainAsync } = useSwitchChain()
   const { writeContractAsync } = useWriteContract()
-  const { connect, connectors } = useConnect()
 
   // Has user already voted on this round?
   const { data: existingVote, refetch: refetchVote } = useReadContract({
@@ -162,7 +162,7 @@ export default function VoteOnRound({ roundId, aiUsdcPct, aiUsycPct, aiEurcPct, 
         style={{ borderRadius: 2 }}
         onClick={() => {
           if (!isConnected) {
-            connect({ connector: connectors[0] || injected() })
+            setPickerOpen(true)
             return
           }
           handleVote()
@@ -171,6 +171,8 @@ export default function VoteOnRound({ roundId, aiUsdcPct, aiUsycPct, aiEurcPct, 
       >
         {!isConnected ? 'Connect wallet' : step === 'voting' ? 'Voting...' : 'Vote against AI'}
       </button>
+
+      <WalletPicker open={pickerOpen} onClose={() => setPickerOpen(false)} />
 
       <div className="text-[10px] text-[var(--fg-dim)] mt-3 leading-relaxed">
         Settles in 24h based on actual asset moves. If your split beats the AI&apos;s,
