@@ -49,27 +49,29 @@ export default function WalletPicker({ open, onClose }: { open: boolean; onClose
       onClick={onClose}
     >
       <div
-        className="modal-panel card max-w-sm w-full"
-        style={{ background: 'var(--bg-card)' }}
+        className="modal-panel card max-w-sm w-full flex flex-col"
+        style={{ background: 'var(--bg-card)', maxHeight: '85vh' }}
         onClick={e => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between p-5 border-b border-[var(--border)]">
+        {/* Header — fixed */}
+        <div className="flex items-start justify-between px-4 py-3 border-b border-[var(--border)] shrink-0">
           <div>
             <div className="text-sm font-medium text-[var(--fg)]">Connect a wallet</div>
-            <div className="text-[10px] text-[var(--fg-dim)] mt-1">
-              {providers.length} wallet{providers.length === 1 ? '' : 's'} detected on this browser
+            <div className="text-[10px] text-[var(--fg-dim)] mt-0.5">
+              {providers.length} wallet{providers.length === 1 ? '' : 's'} detected
             </div>
           </div>
           <button
             onClick={onClose}
-            className="text-[var(--fg-dim)] hover:text-[var(--fg)] text-xl leading-none -mt-1"
+            className="text-[var(--fg-dim)] hover:text-[var(--fg)] text-xl leading-none"
             aria-label="Close"
           >
             ×
           </button>
         </div>
 
-        <div className="p-3 space-y-1.5">
+        {/* Wallet list — scrollable */}
+        <div className="p-2 space-y-1 overflow-y-auto flex-1 min-h-0">
           {providers.length === 0 ? (
             <div className="text-xs text-[var(--fg-muted)] p-4 text-center leading-relaxed">
               No wallet detected. Install a browser wallet like MetaMask, Backpack, or Phantom and refresh this page.
@@ -81,29 +83,30 @@ export default function WalletPicker({ open, onClose }: { open: boolean; onClose
                 key={p.uuid}
                 onClick={() => pick(p)}
                 disabled={isPending || isPicking}
-                className="w-full flex items-center gap-3 p-3 border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] transition text-left disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full flex items-center gap-2.5 px-3 py-2 border border-[var(--border)] hover:border-[var(--accent)] hover:bg-[var(--accent-soft)] transition text-left disabled:opacity-60 disabled:cursor-not-allowed"
                 style={{ borderRadius: 2 }}
               >
                 {p.icon ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={p.icon} alt={p.name} className="w-7 h-7 rounded-sm shrink-0" />
+                  <img src={p.icon} alt={p.name} className="w-6 h-6 rounded-sm shrink-0" />
                 ) : (
-                  <div className="w-7 h-7 rounded-sm bg-[var(--bg-elevated)] shrink-0" />
+                  <div className="w-6 h-6 rounded-sm bg-[var(--bg-elevated)] shrink-0" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <div className="text-sm text-[var(--fg)]">{p.name}</div>
-                  {p.rdns && <div className="text-[10px] text-[var(--fg-dim)] mono truncate">{p.rdns}</div>}
+                  <div className="text-xs text-[var(--fg)] truncate">{p.name}</div>
+                  {p.rdns && <div className="text-[9px] text-[var(--fg-dim)] mono truncate">{p.rdns}</div>}
                 </div>
                 {isPicking && (
-                  <div className="text-[10px] mono text-[var(--accent)] shrink-0">connecting…</div>
+                  <div className="text-[9px] mono text-[var(--accent)] shrink-0">connecting…</div>
                 )}
               </button>
             )
           })}
         </div>
 
-        <div className="px-5 py-3 border-t border-[var(--border)] text-[10px] text-[var(--fg-dim)] leading-relaxed">
-          Bow runs on Arc testnet (chain 5042002). Your wallet will be asked to switch chains after connect.
+        {/* Footer — fixed */}
+        <div className="px-4 py-2 border-t border-[var(--border)] text-[10px] text-[var(--fg-dim)] leading-snug shrink-0">
+          Bow runs on Arc testnet (chain 5042002). Your wallet will switch chains after connect.
         </div>
       </div>
     </div>
