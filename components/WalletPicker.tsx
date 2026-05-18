@@ -45,12 +45,20 @@ export default function WalletPicker({ open, onClose }: { open: boolean; onClose
 
   return (
     <div
-      className="fixed inset-0 z-[500] flex items-center justify-center p-4 modal-backdrop"
+      className="fixed inset-0 z-[500] modal-backdrop overflow-y-auto"
       onClick={onClose}
     >
       <div
-        className="modal-panel card max-w-sm w-full flex flex-col"
-        style={{ background: 'var(--bg-card)', maxHeight: '85vh' }}
+        className="card flex flex-col fade-in"
+        style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          background: 'var(--bg-card)',
+          width: 'min(380px, calc(100vw - 32px))',
+          maxHeight: 'min(80vh, 560px)',
+        }}
         onClick={e => e.stopPropagation()}
       >
         {/* Header — fixed */}
