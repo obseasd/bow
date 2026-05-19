@@ -298,12 +298,29 @@ const IDLE_BUFFER_BPS = 3000 // 30%
 const MIN_TX_AMOUNT = 1_000_000n // 1 USDC or 1 EURC
 
 async function autoBalanceLending(vault) {
-  const lendingAddr = await vault.lendingPool()
+  // V1 vaults do not implement lendingPool() or getDetailedBalances(). The
+  // function selector calls revert with no data on those contracts, which
+  // bubbles up as a CALL_EXCEPTION. We treat any failure here as "no lending
+  // wired" and skip silently so the same script can be pointed at either V1
+  // or V2 without crashing the cron tick.
+  let lendingAddr
+  try {
+    lendingAddr = await vault.lendingPool()
+  } catch {
+    console.log('[bow] Vault has no lendingPool() (V1 contract?), skipping auto-supply.')
+    return
+  }
   if (!lendingAddr || lendingAddr === ethers.ZeroAddress) {
     console.log('[bow] Lending pool not wired on this vault, skipping auto-supply.')
     return
   }
-  const detailed = await vault.getDetailedBalances()
+  let detailed
+  try {
+    detailed = await vault.getDetailedBalances()
+  } catch {
+    console.log('[bow] Vault has no getDetailedBalances() (V1 contract?), skipping auto-supply.')
+    return
+  }
   const assets = [
     { symbol: 'USDC', addr: USDC, idle: detailed[0], lent: detailed[1], skip: false },
     { symbol: 'USYC', addr: USYC, idle: detailed[2], lent: detailed[3], skip: true },
