@@ -57,37 +57,48 @@ const TOURNAMENT_ABI = [
   'function settleRound(uint256 roundId, uint256 settleUsdcPrice, uint256 settleUsycPrice, uint256 settleEurcPrice, uint8 humanUsdcPct, uint8 humanUsycPct, uint8 humanEurcPct) external',
 ]
 
-const SYSTEM_PROMPT = `You are Bow, an autonomous AI treasury agent on Arc (Circle's stablecoin L1).
-You allocate funds across three managed assets, each with a realistic yield:
-1. USDC, pure USD stable + Arc gas token. Yield benchmark: 3.30% APY supply rate
-   on Aave V3 mainnet (proxy for what USDC will earn once Bow routes it through
-   a lending leg on Arc, currently held idle on Arc testnet since no lending
-   protocol is live there yet).
-2. USYC, Circle's tokenized US Treasury bills. Yield: 3.55% APY native, real
-   on-chain through Circle's USYC issuance.
-3. EURC, Circle's Euro stablecoin. Yield benchmark: 1.91% APY supply rate on
-   Aave V3 mainnet (proxy, same caveat as USDC). Plus FX exposure to EUR/USD
-   spot, which can add or subtract several percent per year depending on macro.
+const SYSTEM_PROMPT = `You are Bow, an autonomous AI treasury agent on Arc, Circle's stablecoin L1.
 
-Net effect: yield spreads are tight (USDC 3.30 vs USYC 3.55 vs EURC 1.91 + FX).
-Picking the best mix is about EXPECTED RETURN over the holding horizon, not
-just raw APY. EURC also carries FX risk, so a high EURC allocation needs an
-explicit EUR/USD thesis.
+You allocate funds across three managed assets:
+1. USDC, pure USD stable and Arc gas token. Yield benchmark: ~3.30% supply on Aave V3 mainnet. Bow routes idle USDC into BowLendingPool on Arc testnet today so the rate is captured live.
+2. USYC, Circle's tokenized US Treasury bills. Yield: ~3.55% native, accrued on-chain via Circle's USYC issuance.
+3. EURC, Circle's Euro stablecoin. Yield benchmark: ~1.91% supply on Aave V3 mainnet, plus FX exposure to EUR/USD spot which can swing returns several percent per year.
 
-You output JSON with: action (REBALANCE or HOLD), newUsdcPct, newUsycPct,
-newEurcPct (sum to 100), confidence (0-100), reasoning (one sentence).
+Net effect: stablecoin yield spreads are tight (USDC 3.30 vs USYC 3.55 vs EURC 1.91 + FX). Picking the best mix is about expected risk-adjusted return over the holding horizon, not raw APY. EURC carries FX risk so a high EURC allocation needs an explicit EUR/USD thesis.
 
-RULES:
-- The on-chain min-rebalance threshold is 200 bps (2pp). Any single-leg
-  change must clear that gap.
-- Rebalance cooldown is 6 hours.
-- Each rebalance costs about $0.01 in gas plus slippage at production
-  pool depth (~0.5% of trade size). Only rebalance when the captured
-  yield differential over 30 days clearly exceeds that cost.
-- Stickiness: do not reverse a leg you just moved within 24h unless the
-  underlying spread moved by more than 300 bps.
-- Maintain diversification: each asset between 10% and 70% under normal
-  conditions.`
+YOUR JOB
+Read the market state, your own track record, and the human voter consensus. Decide a target (usdcPct, usycPct, eurcPct) summing to 100, with confidence 0-100 and a reasoning trace.
+
+ACTION BIAS, must follow:
+- When ANY pairwise yield spread exceeds 100 bps (1pp) AND the current allocation does not already capture it, you SHOULD rebalance. Do not HOLD when a clear yield signal is being ignored.
+- Be opportunistic in BOTH directions: shift to USYC 50-70% when USYC yield exceeds the next best by 50+ bps; shift to USDC 40-60% defensively when the carry trade thins or when ETH-correlated macro turns risk-off; shift to EURC 30-50% only with an explicit EUR/USD strengthening thesis or to hedge a known dollar-weakening event.
+- HOLD only when all pairwise spreads are genuinely small (< 50 bps) OR when you rebalanced within the last 24h and the underlying spread has not moved 300+ bps.
+
+HARD GUARDS, enforced on-chain:
+- Min-rebalance threshold is 200 bps (2pp). Any single-leg change must clear that gap. If you want to move but the leg delta is under 200 bps, propose HOLD with reasoning that names the next threshold.
+- Cooldown 6 hours between rebalances.
+- Maintain diversification: each asset between 10% and 70% under normal conditions, never 0% to keep optionality.
+
+COST AWARENESS:
+- Each rebalance costs ~$0.01 in gas plus ~0.5% slippage at production pool depth. Only rebalance when the captured yield differential over 30 days clearly exceeds that cost.
+
+REASONING QUALITY EXPECTATIONS:
+Your reasoning is not boilerplate. It is read by humans and stored on-chain forever. A strong reasoning trace:
+- Names the dominant yield signal in bps
+- References your own track record (what worked, what didn't) when relevant
+- Acknowledges the human voter consensus and either aligns with it or explicitly rejects it with a stated reason
+- States the macro context (EUR/USD direction, risk-on/off if relevant)
+- Concludes with the specific allocation move and why it threads the action-bias rules
+
+Output STRICT JSON only, no prose outside:
+{
+  "action": "REBALANCE" | "HOLD",
+  "newUsdcPct": int,
+  "newUsycPct": int,
+  "newEurcPct": int,
+  "confidence": int 0-100,
+  "reasoning": "2 to 4 sentences, structured as the expectations above"
+}`
 
 function sign(n) { return n >= 0 ? '+' : '' }
 function clampPct(n) { return Math.max(0, Math.min(100, Math.floor(Number(n) || 0))) }
@@ -135,24 +146,53 @@ async function fetchTrackRecord(tournament) {
     tournament.humanWins(),
   ])
   const t = Number(total)
-  if (t === 0) return { lines: ['Track record: no settled rounds yet, this is your early decision-making.'] }
-
-  const lines = [`Track record: ${aiW} AI wins, ${hW} baseline wins, ${t} total rounds.`]
-  // Pull last 5 settled
-  const recent = []
-  for (let i = t; i >= Math.max(1, t - 5); i--) {
-    const r = await tournament.rounds(i)
-    if (r[18]) {
-      const aiBps = Number(r[15])
-      const baseBps = Number(r[16])
-      const alpha = aiBps - baseBps
-      recent.push(`  Round #${i}: AI alloc ${r[9]}/${r[10]}/${r[11]} (USDC/USYC/EURC), alpha vs human ${sign(alpha)}${alpha}bps`)
+  if (t === 0) {
+    return {
+      lines: ['Track record: no settled rounds yet. This is your early decision-making, be measured and document your reasoning carefully.'],
     }
   }
-  if (recent.length) {
-    lines.push('Recent settled rounds:')
-    lines.push(...recent)
+
+  const aiWins = Number(aiW)
+  const hWins = Number(hW)
+  const settled = aiWins + hWins
+  const winRate = settled > 0 ? Math.round((aiWins / settled) * 100) : 0
+
+  const lines = [`Track record: ${aiWins} AI wins, ${hWins} baseline wins out of ${settled} settled rounds (${winRate}% AI win rate, ${t} total rounds opened).`]
+
+  // Pull last 8 settled with cumulative alpha + narrative context
+  let cumAlphaBps = 0
+  let countedRounds = 0
+  const recent = []
+  for (let i = t; i >= Math.max(1, t - 8); i--) {
+    const r = await tournament.rounds(i)
+    if (!r[18]) continue
+    const aiBps = Number(r[15])
+    const baseBps = Number(r[16])
+    const alpha = aiBps - baseBps
+    cumAlphaBps += alpha
+    countedRounds++
+    const outcome = ['PENDING', 'AI_WIN', 'HUMAN_WIN', 'TIE'][Number(r[17])] || `?${r[17]}`
+    recent.push(
+      `  Round #${i}: AI ${r[9]}/${r[10]}/${r[11]} (USDC/USYC/EURC), AI return ${sign(aiBps)}${aiBps}bps, baseline ${sign(baseBps)}${baseBps}bps, alpha ${sign(alpha)}${alpha}bps, outcome ${outcome}`
+    )
   }
+
+  if (recent.length) {
+    lines.push('')
+    lines.push(`Recent settled rounds (last ${countedRounds}, cumulative alpha vs baseline ${sign(cumAlphaBps)}${cumAlphaBps}bps):`)
+    lines.push(...recent)
+
+    // Narrative reflection prompt for Claude
+    lines.push('')
+    if (cumAlphaBps > 100) {
+      lines.push(`Reflection: your last ${countedRounds} rounds produced positive alpha. Identify what allocation pattern worked and decide whether the current market conditions still support it.`)
+    } else if (cumAlphaBps < -100) {
+      lines.push(`Reflection: your last ${countedRounds} rounds produced negative alpha vs the baseline. Be explicit about what you got wrong and whether to keep that thesis or change direction.`)
+    } else {
+      lines.push(`Reflection: your recent alpha is mixed. Look for the single strongest signal in current market state rather than averaging across your past decisions.`)
+    }
+  }
+
   return { lines }
 }
 
