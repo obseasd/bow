@@ -67,6 +67,8 @@ export async function GET() {
       'voteHuman(roundId, usdcPct, usycPct, eurcPct) [permissionless]',
       'reads market state every 6h via GitHub Actions cron',
       'rebalance threshold: 200bps minimum allocation delta, 6h cooldown enforced on-chain',
+      'x402 pay-per-read on agent reasoning: 0.005 USDC per decision unlock',
+      'session keys for repeated reads: 1 USDC opens a 200-credit, 24h-expiry session with refundable close',
     ],
 
     services: [
@@ -83,9 +85,42 @@ export async function GET() {
         signature: 'totalAssetsUsd() returns (uint256)',
       },
       {
-        name: 'read-latest-decision-reasoning',
+        name: 'read-latest-decision-summary',
         method: 'HTTP GET',
         url: 'https://bow-gamma.vercel.app/api/decisions',
+        gated: false,
+      },
+      {
+        name: 'read-full-reasoning-x402',
+        method: 'HTTP GET',
+        url: 'https://bow-gamma.vercel.app/api/agent-reasoning/{decisionId}',
+        gated: true,
+        pricing: {
+          scheme: 'arc-erc20-usdc-v1',
+          asset: c.USDC,
+          recipient: '0x3a0Dd90212838f32a953Acd4B32596b62859324A',
+          amount: '5000',
+          amountHuman: '0.005 USDC',
+          retryHeader: 'X-Payment-Tx',
+        },
+        spec: 'On first call returns HTTP 402 with payment instructions. Client signs USDC.transfer(operator, 5000) on Arc, retries with X-Payment-Tx header. Server verifies the on-chain receipt then serves the full Claude reasoning trace + reasoningHash + tx receipt.',
+      },
+      {
+        name: 'open-reasoning-session',
+        method: 'HTTP GET',
+        url: 'https://bow-gamma.vercel.app/api/agent-session?action=open&tx={txHash}',
+        gated: true,
+        pricing: {
+          scheme: 'arc-erc20-usdc-v1',
+          asset: c.USDC,
+          recipient: '0x3a0Dd90212838f32a953Acd4B32596b62859324A',
+          amount: '1000000',
+          amountHuman: '1.000 USDC',
+          creditsGranted: 200,
+          perCreditCostHuman: '0.005 USDC',
+          windowHours: 24,
+        },
+        spec: 'After a 1 USDC transfer, server issues an HMAC-signed session token. Subsequent reads pass X-Session-Token on /api/agent-reasoning/{id}, each consumes one credit. /api/agent-session?action=close returns a signed refund manifest for unused credits. Pattern: open once, call many, close once.',
       },
     ],
 
