@@ -3,6 +3,7 @@ import StatsBar from '@/components/StatsBar'
 import LatestDecision from '@/components/LatestDecision'
 import RecentRounds from '@/components/RecentRounds'
 import AllocationSparkline from '@/components/AllocationSparkline'
+import AgentReasoningPanel from '@/components/AgentReasoningPanel'
 import Nav from '@/components/Nav'
 
 export default function HomePage() {
@@ -43,6 +44,15 @@ export default function HomePage() {
         {/* Latest AI decision card */}
         <section className="mt-12">
           <LatestDecision />
+        </section>
+
+        {/* x402 + session keys: pay to read the full Claude reasoning */}
+        <section className="mt-12">
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-xs uppercase tracking-wider text-[var(--fg-muted)]">Read the AI mind</h2>
+            <span className="text-[10px] text-[var(--fg-dim)]">x402 client-side · session keys · native USDC</span>
+          </div>
+          <AgentReasoningPanel />
         </section>
 
         {/* Allocation trajectory sparkline */}
